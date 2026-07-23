@@ -3,7 +3,7 @@ Contributors: jonhenshaw
 Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -109,6 +109,12 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 2. Ranking and matching controls, including BM25 tuning and per-field weights.
 
 == Changelog ==
+
+= 1.2.1 =
+* Suggestions now keep a readable width when the search field itself is narrow, and stay inside the window rather than overflowing it.
+* Removed the browser's own clear button from search fields, which was showing a second cross next to the plugin's.
+* The arrow keys, Enter, and Escape now work whenever the suggestion list is open, not only while the search field still holds focus.
+* Enter with no usable suggestion submits the search form instead of doing nothing.
 
 = 1.2.0 =
 * Added instant as-you-type suggestions, with the first result highlighted so Enter's target is always visible, arrow-key navigation, Escape to clear, and a clear button.

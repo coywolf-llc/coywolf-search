@@ -16,6 +16,10 @@
 		return;
 	}
 
+	// Narrow search fields still need a readable dropdown.
+	var MIN_WIDTH = 300;
+	var EDGE_GAP = 8;
+
 	var LIBRARY = { promise: null, MiniSearch: null };
 	var CORPUS = { promise: null, index: null, byId: {} };
 	var counter = 0;
@@ -217,12 +221,25 @@
 		 */
 		function position() {
 			var rect = input.getBoundingClientRect();
-			var top = rect.bottom + window.scrollY + 4;
-			var left = rect.left + window.scrollX;
+			var viewport = document.documentElement.clientWidth;
 
-			list.style.top = top + 'px';
+			// A narrow field — a header search, a sidebar widget — would
+			// otherwise give a dropdown one or two words wide, with every
+			// suggestion wrapped into an unreadable column. Match the field
+			// when it is wide enough to be worth matching, and ignore it when
+			// it isn't.
+			var width = Math.max( rect.width, MIN_WIDTH );
+			width = Math.min( width, viewport - 2 * EDGE_GAP );
+
+			// Widening can push the dropdown off the right edge, so pull it
+			// back inside rather than causing a horizontal scrollbar.
+			var left = rect.left + window.scrollX;
+			var furthest = window.scrollX + viewport - width - EDGE_GAP;
+			left = Math.max( window.scrollX + EDGE_GAP, Math.min( left, furthest ) );
+
+			list.style.top = rect.bottom + window.scrollY + 4 + 'px';
 			list.style.left = left + 'px';
-			list.style.width = rect.width + 'px';
+			list.style.width = width + 'px';
 
 			var size = Math.min( 26, Math.max( 16, rect.height * 0.5 ) );
 			clear.style.width = size + 'px';
@@ -499,7 +516,7 @@
 			paintActive();
 		}
 
-		input.addEventListener( 'keydown', function ( event ) {
+		function onKeydown( event ) {
 			switch ( event.key ) {
 				case 'ArrowDown':
 					if ( open && items.length ) {
@@ -522,10 +539,12 @@
 					// preselect behaviour turned off nothing is highlighted
 					// until the visitor arrows to it, and Enter otherwise
 					// submits the form for a full search.
-					if ( open && items.length && active >= 0 ) {
+					if ( open && items.length && active >= 0 && items[ active ].url ) {
 						event.preventDefault();
 						go( items[ active ] );
 					}
+					// Anything else falls through to the browser, which
+					// submits the form — Enter never does nothing.
 					break;
 
 				case 'Escape':
@@ -540,6 +559,27 @@
 					close();
 					break;
 			}
+		}
+
+		input.addEventListener( 'keydown', onKeydown );
+
+		// Also while the list is open but focus has drifted — after clicking
+		// the page and coming back, or after a browser restored the scroll
+		// position. The suggestions are visibly open with something
+		// highlighted, so Enter and the arrow keys have to keep meaning what
+		// they look like they mean.
+		document.addEventListener( 'keydown', function ( event ) {
+			if ( ! open || event.target === input ) {
+				return;
+			}
+			if ( event.target instanceof HTMLElement && event.target.isContentEditable ) {
+				return;
+			}
+			var tag = event.target && event.target.tagName;
+			if ( 'INPUT' === tag || 'TEXTAREA' === tag || 'SELECT' === tag ) {
+				return;
+			}
+			onKeydown( event );
 		} );
 
 		input.addEventListener( 'input', onInput );

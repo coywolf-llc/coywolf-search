@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.2.0
+**Version:** 1.2.1
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -74,6 +74,12 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.2.1
+- Suggestions keep a readable minimum width on narrow search fields and stay inside the viewport.
+- Hid the browser's native `input[type=search]` clear button, which doubled up with the plugin's.
+- Arrow keys, Enter, and Escape work whenever the list is open, not only while the field holds focus.
+- Enter with no usable suggestion falls through to submitting the form.
 
 ### 1.2.0
 - Added instant as-you-type suggestions with first-result highlighting, arrow-key navigation, Escape to clear, and a clear button.
