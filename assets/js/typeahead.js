@@ -67,8 +67,96 @@
 	/**
 	 * Build the in-browser title index, once.
 	 */
+	var INDEX_OPTIONS = {
+		fields: [ 'title' ],
+		storeFields: [ 'title', 'url', 'type' ],
+		searchOptions: { prefix: true, fuzzy: 0.2 },
+	};
+
+	var STORE_PREFIX = 'coywolfSearch:';
+
+	/**
+	 * Read (one argument) or write (two) the per-session cache.
+	 *
+	 * Everything here is best-effort: private browsing, quota limits, and
+	 * storage-disabled contexts all just mean the corpus is fetched again,
+	 * which is exactly what happened before the cache existed.
+	 */
+	function store( key, value ) {
+		try {
+			if ( undefined === value ) {
+				return window.sessionStorage.getItem( STORE_PREFIX + key );
+			}
+			window.sessionStorage.setItem( STORE_PREFIX + key, value );
+		} catch ( e ) {
+			return null;
+		}
+		return null;
+	}
+
+	/**
+	 * Drop cached copies from older index versions.
+	 */
+	function pruneStore() {
+		try {
+			var stale = [];
+			for ( var i = 0; i < window.sessionStorage.length; i++ ) {
+				var key = window.sessionStorage.key( i );
+				if ( key && 0 === key.indexOf( STORE_PREFIX ) && -1 === key.indexOf( config.docsVersion ) ) {
+					stale.push( key );
+				}
+			}
+			stale.forEach( function ( key ) {
+				window.sessionStorage.removeItem( key );
+			} );
+		} catch ( e ) {
+			// Storage unavailable; nothing to prune.
+		}
+	}
+
+	function hydrate( MiniSearch, docs, serialized ) {
+		var rows = docs.map( function ( d ) {
+			var row = { id: d[ 0 ], title: d[ 1 ], url: d[ 2 ], type: d[ 3 ] };
+			CORPUS.byId[ row.id ] = row;
+			return row;
+		} );
+
+		// A serialized index skips re-tokenizing every title on each page
+		// view — the build cost was already paid once this session.
+		if ( serialized ) {
+			try {
+				CORPUS.index = MiniSearch.loadJSON( serialized, INDEX_OPTIONS );
+				return CORPUS.index;
+			} catch ( e ) {
+				// Fall through and rebuild from the docs.
+			}
+		}
+
+		var index = new MiniSearch( INDEX_OPTIONS );
+		index.addAll( rows );
+		CORPUS.index = index;
+
+		store( 'index:' + config.docsVersion, JSON.stringify( index ) );
+
+		return index;
+	}
+
 	function loadCorpus() {
 		if ( CORPUS.promise ) {
+			return CORPUS.promise;
+		}
+
+		pruneStore();
+
+		// Session-cached copy first: page caches and CDNs on some sites strip
+		// the HTTP caching this payload asks for, and there is no reason to
+		// re-download or re-index an unchanged corpus on every page view.
+		var cachedDocs = store( 'docs:' + config.docsVersion );
+
+		if ( cachedDocs ) {
+			CORPUS.promise = loadLibrary().then( function ( MiniSearch ) {
+				return hydrate( MiniSearch, JSON.parse( cachedDocs ), store( 'index:' + config.docsVersion ) );
+			} );
 			return CORPUS.promise;
 		}
 
@@ -78,24 +166,9 @@
 				return r.json();
 			} ),
 		] ).then( function ( parts ) {
-			var MiniSearch = parts[ 0 ];
 			var docs = ( parts[ 1 ] && parts[ 1 ].docs ) || [];
-
-			var index = new MiniSearch( {
-				fields: [ 'title' ],
-				storeFields: [ 'title', 'url', 'type' ],
-				searchOptions: { prefix: true, fuzzy: 0.2 },
-			} );
-
-			var rows = docs.map( function ( d ) {
-				var row = { id: d[ 0 ], title: d[ 1 ], url: d[ 2 ], type: d[ 3 ] };
-				CORPUS.byId[ row.id ] = row;
-				return row;
-			} );
-
-			index.addAll( rows );
-			CORPUS.index = index;
-			return index;
+			store( 'docs:' + config.docsVersion, JSON.stringify( docs ) );
+			return hydrate( parts[ 0 ], docs );
 		} );
 
 		return CORPUS.promise;
@@ -168,6 +241,8 @@
 		var userMoved = false;
 		var open = false;
 		var requestToken = 0;
+		var announcedCount = -1;
+		var hintGiven = false;
 
 		/* --- markup ---------------------------------------------------- */
 
@@ -179,6 +254,12 @@
 		clear.type = 'button';
 		clear.className = 'coywolf-search-clear';
 		clear.setAttribute( 'aria-label', config.strings.clear );
+		// The button lives at the end of the document (see the markup note
+		// below), so leaving it tabbable would put it at the end of the page's
+		// tab order — far from the field it visually sits in. It stays a
+		// pointer-and-touch control; the keyboard path to the same action is
+		// Escape, announced in the hint string.
+		clear.tabIndex = -1;
 		clear.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M1 1L15 15M15 1L1 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
 		clear.hidden = true;
 		document.body.appendChild( clear );
@@ -187,6 +268,7 @@
 		list.className = 'coywolf-search-suggestions';
 		list.id = id;
 		list.setAttribute( 'role', 'listbox' );
+		list.setAttribute( 'aria-label', config.strings.listLabel || 'Search suggestions' );
 		list.hidden = true;
 		document.body.appendChild( list );
 
@@ -241,7 +323,7 @@
 			list.style.left = left + 'px';
 			list.style.width = width + 'px';
 
-			var size = Math.min( 26, Math.max( 16, rect.height * 0.5 ) );
+			var size = Math.min( 28, Math.max( 24, rect.height * 0.5 ) );
 			clear.style.width = size + 'px';
 			clear.style.height = size + 'px';
 			clear.style.top = rect.top + window.scrollY + ( rect.height - size ) / 2 + 'px';
@@ -285,6 +367,11 @@
 		function render( query ) {
 			if ( ! items.length || ! visible() ) {
 				close();
+				// The visitor is mid-query with the field populated: silence
+				// here would leave the last spoken count standing as a lie.
+				if ( ! items.length && input.value.trim().length >= config.minChars ) {
+					announce( 0 );
+				}
 				return;
 			}
 
@@ -325,8 +412,35 @@
 			list.hidden = false;
 			open = true;
 			input.setAttribute( 'aria-expanded', 'true' );
-			status.textContent = config.strings.available.replace( '%d', items.length );
+			announce( items.length );
 			paintActive();
+		}
+
+		/**
+		 * Tell the live region how many suggestions there are.
+		 *
+		 * Only when the number changes — re-announcing an unchanged count on
+		 * every keystroke turns a screen reader into a metronome. The
+		 * keyboard hint is appended once per page, the first time
+		 * suggestions appear at all.
+		 */
+		function announce( count ) {
+			if ( count === announcedCount ) {
+				return;
+			}
+			announcedCount = count;
+
+			if ( 0 === count ) {
+				status.textContent = config.strings.noResults;
+				return;
+			}
+
+			var message = config.strings.available.replace( '%d', count );
+			if ( ! hintGiven ) {
+				message += ' ' + config.strings.hint;
+				hintGiven = true;
+			}
+			status.textContent = message;
 		}
 
 		function paintActive() {
@@ -368,12 +482,21 @@
 			close();
 			showClear( false );
 			status.textContent = '';
+			announcedCount = -1;
 			requestToken++;
 		}
 
 		function go( item ) {
-			if ( item && item.url ) {
-				window.location.href = item.url;
+			if ( ! item || ! item.url ) {
+				return;
+			}
+			// Suggestion URLs only ever come from the server's permalinks, but
+			// a navigation sink deserves its own guard: nothing that is not a
+			// web address gets assigned to location.
+			var probe = document.createElement( 'a' );
+			probe.href = item.url;
+			if ( 'http:' === probe.protocol || 'https:' === probe.protocol ) {
+				window.location.href = probe.href;
 			}
 		}
 
@@ -548,7 +671,18 @@
 					break;
 
 				case 'Escape':
-					if ( open || input.value ) {
+					// Two stages, per the combobox pattern: the first press
+					// only dismisses the suggestions — a popup appeared over
+					// the page and Escape makes it go away — and the typed
+					// query survives. A second press, with the list already
+					// closed, clears the field. Collapsing both into one
+					// press would destroy a typed query as the price of
+					// closing a popup.
+					if ( open ) {
+						event.preventDefault();
+						event.stopPropagation();
+						close();
+					} else if ( input.value ) {
 						event.preventDefault();
 						event.stopPropagation();
 						reset();
@@ -575,8 +709,14 @@
 			if ( event.target instanceof HTMLElement && event.target.isContentEditable ) {
 				return;
 			}
-			var tag = event.target && event.target.tagName;
-			if ( 'INPUT' === tag || 'TEXTAREA' === tag || 'SELECT' === tag ) {
+			// Focus on any interactive element keeps its own keys: Enter on a
+			// focused link must follow the link, not open a suggestion, and
+			// arrows inside another field must move its caret.
+			if (
+				event.target &&
+				event.target.closest &&
+				event.target.closest( 'a, button, input, textarea, select, [tabindex], [role="button"], [role="link"]' )
+			) {
 				return;
 			}
 			onKeydown( event );

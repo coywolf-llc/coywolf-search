@@ -174,6 +174,16 @@ CREATE TABLE {$postings} (
 			return self::$tables_exist;
 		}
 
+		// The version option is written when the tables are created and
+		// deleted when they are dropped, so on the happy path it answers
+		// without touching the database schema — two SHOW TABLES probes on
+		// every search add up. The probe below remains the fallback for any
+		// state the option cannot vouch for.
+		if ( (int) get_option( 'coywolf_search_db_version', 0 ) === self::DB_VERSION ) {
+			self::$tables_exist = true;
+			return true;
+		}
+
 		self::$tables_exist = true;
 
 		foreach ( array( self::terms_table(), self::postings_table() ) as $table ) {

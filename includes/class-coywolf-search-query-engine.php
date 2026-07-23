@@ -18,6 +18,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Coywolf_Search_Query_Engine {
 
 	/**
+	 * Most query tokens considered.
+	 *
+	 * Real queries are a handful of words. The cap exists because the search
+	 * endpoint is anonymous and every token costs an expansion pass — without
+	 * a ceiling, a 200-character query packed with two-letter tokens does
+	 * dozens of vocabulary scans on one request.
+	 */
+	const MAX_TOKENS = 16;
+
+	/**
+	 * Most tokens that get the fuzzy treatment.
+	 *
+	 * Fuzzy expansion is the expensive step — an edit-distance pass over the
+	 * cached vocabulary per token — and its value is in catching a typo or
+	 * two, not in fuzzing every word of a long query.
+	 */
+	const MAX_FUZZY_TOKENS = 6;
+
+	/**
+	 * Hard ceiling on posting rows fetched for one search.
+	 *
+	 * Scoring wants every posting for the expanded terms, and on any site
+	 * within this plugin's design range it gets exactly that — the limit is
+	 * far above what real corpora produce. It exists so that the worst case
+	 * (a pathological corpus and a query of nothing but ultra-common terms)
+	 * degrades to slightly-imperfect ranking instead of an out-of-memory
+	 * request.
+	 */
+	const MAX_POSTING_ROWS = 50000;
+
+	/**
 	 * Run a search.
 	 *
 	 * @param string               $query_string Raw query.
@@ -45,6 +76,8 @@ final class Coywolf_Search_Query_Engine {
 		if ( empty( $tokens ) ) {
 			return null;
 		}
+
+		$tokens = array_slice( $tokens, 0, self::MAX_TOKENS );
 
 		$groups = $this->expand( $tokens );
 		if ( empty( $groups ) ) {
@@ -115,7 +148,8 @@ final class Coywolf_Search_Query_Engine {
 
 		$exact = Coywolf_Search_Vocabulary::lookup( $tokens );
 
-		$groups = array();
+		$groups  = array();
+		$fuzzied = 0;
 
 		foreach ( $tokens as $index => $token ) {
 			$candidates = array();
@@ -131,8 +165,9 @@ final class Coywolf_Search_Query_Engine {
 				}
 			}
 
-			$distance = $this->fuzzy_distance( $token, $settings );
+			$distance = $fuzzied < self::MAX_FUZZY_TOKENS ? $this->fuzzy_distance( $token, $settings ) : 0;
 			if ( $distance > 0 ) {
+				++$fuzzied;
 				foreach ( Coywolf_Search_Vocabulary::expand_fuzzy( $token, $distance, $cap ) as $term => $entry ) {
 					$candidates[ $term ] = $entry;
 				}
@@ -276,12 +311,14 @@ final class Coywolf_Search_Query_Engine {
 			AND ps.field IN ({$field_placeholders})
 			AND p.post_status = 'publish'
 			AND p.post_password = ''
-			AND p.post_type IN ({$type_placeholders})",
+			AND p.post_type IN ({$type_placeholders})
+			LIMIT %d",
 			array_merge(
 				array( $postings, $posts ),
 				$term_ids,
 				$fields,
-				$post_types
+				$post_types,
+				array( self::MAX_POSTING_ROWS )
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
@@ -445,16 +482,39 @@ final class Coywolf_Search_Query_Engine {
 	 * @return int[]
 	 */
 	private function sort_by_score( array $scores ) {
+		global $wpdb;
+
 		$ids = array_keys( $scores );
 
-		// One cache prime, so the tiebreak can read post dates without a query
-		// per post.
-		_prime_post_caches( $ids, false, false );
+		// The tiebreak needs one small column per matched post — not the full
+		// row. Priming the post cache here would hydrate every matched post
+		// including its content before pagination has discarded most of them;
+		// on a broad query that is thousands of complete posts fetched to
+		// return ten. Only the page of results that survives the slice gets
+		// hydrated, by whoever renders it.
+		$dates        = array();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-		$dates = array();
+		// The placeholder list is generated from the ID count and every value
+		// is bound by prepare(); the direct query exists because the core API
+		// for reading post dates hydrates complete post objects.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT ID, post_date_gmt FROM {$wpdb->posts} WHERE ID IN ({$placeholders})",
+				$ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		foreach ( (array) $rows as $row ) {
+			$dates[ (int) $row['ID'] ] = (string) $row['post_date_gmt'];
+		}
 		foreach ( $ids as $post_id ) {
-			$post              = get_post( $post_id );
-			$dates[ $post_id ] = $post instanceof WP_Post ? $post->post_date_gmt : '';
+			if ( ! isset( $dates[ $post_id ] ) ) {
+				$dates[ $post_id ] = '';
+			}
 		}
 
 		usort(

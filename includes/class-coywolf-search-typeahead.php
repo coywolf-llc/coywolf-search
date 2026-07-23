@@ -66,14 +66,33 @@ final class Coywolf_Search_Typeahead {
 	 * @return WP_REST_Response
 	 */
 	public function handle_docs() {
+		$version = self::version();
+		$etag    = '"' . $version . '"';
+
+		// A validator alongside the cache header: page-cache and CDN layers
+		// routinely rewrite Cache-Control to max-age=0, and without an ETag
+		// that turns every fetch into a full re-download of the payload. With
+		// one, the browser revalidates and gets a 304 instead.
+		$sent = isset( $_SERVER['HTTP_IF_NONE_MATCH'] )
+			? trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) )
+			: '';
+
+		if ( '' !== $sent && trim( $sent, 'W/' ) === $etag ) {
+			$response = new WP_REST_Response( null, 304 );
+			$response->header( 'ETag', $etag );
+			$response->header( 'Cache-Control', 'public, max-age=86400' );
+			return $response;
+		}
+
 		$response = new WP_REST_Response(
 			array(
-				'v'    => self::version(),
+				'v'    => $version,
 				'docs' => self::docs(),
 			),
 			200
 		);
 
+		$response->header( 'ETag', $etag );
 		$response->header( 'Cache-Control', 'public, max-age=86400' );
 
 		return $response;

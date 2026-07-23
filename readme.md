@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.2.1
+**Version:** 1.3.0
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -74,6 +74,15 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.3.0
+- Two-layer, salted rate limiting on the search endpoint (spoofed forwarded headers no longer bypass or poison it).
+- Query cost caps: 16 tokens per search, 6 fuzzy-expanded, and a hard ceiling on postings rows per request.
+- Suggestion payload invalidates on incremental index updates, not just full rebuilds.
+- Screen-reader support: no-results and count announcements, ARIA progressbar + status on the rebuild, named and grouped settings controls, focus preserved when a rebuild starts.
+- Escape closes suggestions first, clears on the second press; underlined match highlights in titles.
+- Result ordering no longer hydrates full post rows before pagination.
+- sessionStorage + ETag caching for the suggestion data; the boot config is only computed on pages that load the typeahead.
 
 ### 1.2.1
 - Suggestions keep a readable minimum width on narrow search fields and stay inside the viewport.
