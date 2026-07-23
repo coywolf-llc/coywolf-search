@@ -35,6 +35,24 @@
 	display: none;
 }
 
+/*
+ * Browsers draw their own clear button inside input[type="search"], which would
+ * sit right next to ours and give the field two crosses. Ours is the one that
+ * also closes the suggestions, so the native one goes.
+ */
+input[data-coywolf-search-bound]::-webkit-search-cancel-button,
+input[data-coywolf-search-bound]::-webkit-search-decoration {
+	-webkit-appearance: none;
+	appearance: none;
+	display: none;
+}
+
+input[data-coywolf-search-bound]::-ms-clear {
+	display: none;
+	width: 0;
+	height: 0;
+}
+
 .coywolf-search-suggestions {
 	position: absolute;
 	/* Explicit, because the width set on this element is the input's width and
