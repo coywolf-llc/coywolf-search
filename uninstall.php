@@ -49,6 +49,7 @@ function coywolf_search_uninstall_site() {
 
 	// Transients the engine and the GitHub build's updater may have written.
 	delete_transient( 'coywolf_search_vocabulary' );
+	delete_transient( 'coywolf_search_typeahead_docs' );
 	delete_site_transient( 'coywolf_search_gh_release' );
 	delete_site_transient( 'coywolf_search_gh_release_neg' );
 	delete_site_transient( 'coywolf_search_gh_release_err' );

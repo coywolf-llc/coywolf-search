@@ -380,8 +380,9 @@ final class Coywolf_Search_Admin {
 		$this->toggle( 'typeahead', __( 'Suggest results as visitors type', 'coywolf-search' ) );
 		$this->number( 'typeahead_max', __( 'Maximum suggestions', 'coywolf-search' ), 1, 20, 1 );
 		$this->number( 'typeahead_debounce', __( 'Delay before searching (ms)', 'coywolf-search' ), 0, 2000, 10 );
-		$this->toggle( 'typeahead_enter', __( 'Pressing Enter opens the top suggestion', 'coywolf-search' ) );
-		echo '<p class="description">' . esc_html__( 'With Enter-to-open off, Enter submits the search form as usual. Suggestions always fall back to a normal search when JavaScript is unavailable.', 'coywolf-search' ) . '</p>';
+		$this->toggle( 'typeahead_enter', __( 'Highlight the first suggestion, so Enter opens it', 'coywolf-search' ) );
+		$this->toggle( 'typeahead_show_type', __( 'Show the content type beside each suggestion', 'coywolf-search' ) );
+		echo '<p class="description">' . esc_html__( 'With the first suggestion highlighted, Enter opens it and the arrow keys move between suggestions. Turn that off and Enter submits the search form as usual. Suggestions always fall back to a normal search when JavaScript is unavailable.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**

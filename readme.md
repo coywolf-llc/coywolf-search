@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -15,6 +15,7 @@ WordPress searches posts with a `LIKE '%term%'` scan of the posts table. It cann
 - **AND matching** with an optional coverage-ranked OR fallback when nothing matches everything.
 - **Per-post-type and per-taxonomy control** over what is searchable.
 - **Optional English stemming** and built-in or custom stopword lists.
+- **Instant as-you-type suggestions.** A browser-side title index answers on the keystroke; debounced full-text results merge in behind it. First result auto-highlighted, arrow-key navigation, Escape and a clear button to reset.
 - **Self-maintaining index.** Builds on activation, reindexes edits in the background, and rebuilds itself when a setting changes what would be stored.
 - **Read-only search API** at `GET /wp-json/coywolf-search/v1/search?q=…`, returning ranked results with highlighted snippets.
 - **No outbound network calls.** No telemetry, no remote assets.
@@ -35,6 +36,9 @@ Your theme is untouched: `/?s=` and `get_search_form()` keep working and paginat
 | Query pipeline and BM25 scoring | `includes/class-coywolf-search-query-engine.php` |
 | `posts_pre_query` integration | `includes/class-coywolf-search-query-integration.php` |
 | REST search endpoint | `includes/class-coywolf-search-rest.php` |
+| Typeahead payload | `includes/class-coywolf-search-typeahead.php` |
+| Conditional asset loading | `includes/class-coywolf-search-assets.php` |
+| Typeahead client | `assets/js/typeahead.js` |
 | Settings → Search | `includes/class-coywolf-search-admin.php` |
 
 ### Schema
@@ -56,6 +60,8 @@ coywolf_search_postings   term_id, post_id, field, tf, dl   PK (term_id, post_id
 | `coywolf_search_reindex_delay` | Seconds to debounce reindexing after an edit (default 60). |
 | `coywolf_search_rate_limit` | Requests allowed per throttle bucket per minute (default 120; 0 disables). |
 | `coywolf_search_client_ip` | Override the address the REST throttle buckets on. |
+| `coywolf_search_should_enqueue` | Force the typeahead assets on for a theme with an unusual search form. |
+| `coywolf_search_typeahead_cap` | How many titles are sent to the browser (default 10,000). |
 
 <!-- wporg-strip:start — describes the GitHub distribution, which the WordPress.org build is not -->
 ## Development
@@ -68,6 +74,12 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.2.0
+- Added instant as-you-type suggestions with first-result highlighting, arrow-key navigation, Escape to clear, and a clear button.
+- Suggestions attach to any theme's search form without modifying its markup.
+- The search library and the title list load only on first interaction with a search box.
+- Added a setting for whether to show the content type beside each suggestion (off by default).
 
 ### 1.1.0
 - The index now builds itself on activation, and rebuilds itself whenever a setting changes what would be stored.
