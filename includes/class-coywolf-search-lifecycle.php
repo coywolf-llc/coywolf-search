@@ -15,10 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Coywolf_Search_Lifecycle {
 
 	/**
-	 * Create the tables and seed defaults.
+	 * Create the tables, seed defaults, and start building the index.
 	 *
-	 * Nothing is scheduled and nothing is indexed here: activation should be
-	 * fast and predictable, and the settings screen offers the first build.
+	 * The build itself is queued rather than run here — activation has to stay
+	 * fast on a site with thousands of posts — but it is queued immediately,
+	 * so the plugin is useful without anyone having to find a button first.
 	 */
 	public static function activate() {
 		Coywolf_Search_Schema::create_tables();
@@ -31,6 +32,8 @@ final class Coywolf_Search_Lifecycle {
 		Coywolf_Search_Rebuilder::reset();
 
 		update_option( 'coywolf_search_needs_first_build', 1, false );
+
+		Coywolf_Search_Rebuilder::schedule_auto_rebuild();
 	}
 
 	/**
@@ -47,6 +50,7 @@ final class Coywolf_Search_Lifecycle {
 		// class is not present in the WordPress.org build, and the hook names
 		// need to be unschedulable either way.
 		wp_unschedule_hook( Coywolf_Search_Indexer::CRON_HOOK );
+		wp_unschedule_hook( Coywolf_Search_Rebuilder::CRON_HOOK );
 		wp_unschedule_hook( 'coywolf_search_refresh_release' );
 
 		Coywolf_Search_Vocabulary::invalidate();

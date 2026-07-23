@@ -101,17 +101,27 @@ final class Coywolf_Search_Admin {
 			return;
 		}
 
-		if ( get_option( 'coywolf_search_needs_first_build' ) && ! Coywolf_Search_Indexer::has_index() ) {
+		$queued  = (bool) wp_next_scheduled( Coywolf_Search_Rebuilder::CRON_HOOK );
+		$running = Coywolf_Search_Rebuilder::is_running();
+		$stale   = (bool) get_option( 'coywolf_search_index_stale' );
+		$empty   = ! Coywolf_Search_Indexer::has_index();
+
+		if ( $running || ( $queued && ( $stale || $empty ) ) ) {
 			printf(
-				'<div class="notice notice-info is-dismissible"><p>%s</p></div>',
-				esc_html__( 'Coywolf Search is active but has no index yet. Build one below to start returning results.', 'coywolf-search' )
+				'<div class="notice notice-info"><p>%s</p></div>',
+				esc_html__( 'Coywolf Search is building your index in the background. Searches keep working while it runs; results improve as it finishes.', 'coywolf-search' )
 			);
+			return;
 		}
 
-		if ( get_option( 'coywolf_search_index_stale' ) && Coywolf_Search_Indexer::has_index() ) {
+		// Nothing queued and nothing running, but the index still doesn't match
+		// the settings: on most sites the background build has simply not been
+		// triggered yet because WP-Cron only fires on a page request, and on a
+		// site with WP-Cron switched off it never will.
+		if ( $stale || $empty ) {
 			printf(
-				'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
-				esc_html__( 'You changed a setting that affects how content is indexed. Rebuild the index so searches match what is stored.', 'coywolf-search' )
+				'<div class="notice notice-warning"><p>%s</p></div>',
+				esc_html__( 'The index does not match your current settings yet. It rebuilds itself in the background, but if your site has WP-Cron disabled you can start it now with the button below.', 'coywolf-search' )
 			);
 		}
 	}

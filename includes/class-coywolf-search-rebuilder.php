@@ -22,6 +22,8 @@ final class Coywolf_Search_Rebuilder {
 	const STATE_OPTION = 'coywolf_search_rebuild_state';
 	const AJAX_ACTION  = 'coywolf_search_rebuild';
 	const NONCE_ACTION = 'coywolf_search_rebuild';
+	const CRON_HOOK    = 'coywolf_search_rebuild_batch';
+	const TICK_LOCK    = 'coywolf_search_tick_lock';
 
 	/**
 	 * Posts indexed per tick.
@@ -35,10 +37,60 @@ final class Coywolf_Search_Rebuilder {
 	const LOCK_SECONDS = 120;
 
 	/**
-	 * Register the AJAX endpoint.
+	 * How long one background run keeps working before yielding and
+	 * rescheduling. Long enough to make real progress on a big site, short
+	 * enough to stay well inside a normal PHP time limit.
+	 */
+	const CRON_RUN_SECONDS = 20;
+
+	/**
+	 * How long a single tick may hold the advance lock.
+	 */
+	const TICK_LOCK_SECONDS = 60;
+
+	/**
+	 * Register the AJAX endpoint and the background runner.
 	 */
 	public function init() {
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_ajax' ) );
+		add_action( self::CRON_HOOK, array( $this, 'run_background' ) );
+	}
+
+	/**
+	 * Queue a rebuild to run in the background.
+	 *
+	 * Used on activation and whenever a setting changes what would be stored,
+	 * so the index looks after itself instead of waiting for someone to notice
+	 * a notice and press a button.
+	 */
+	public static function schedule_auto_rebuild() {
+		if ( wp_next_scheduled( self::CRON_HOOK ) ) {
+			return;
+		}
+		wp_schedule_single_event( time(), self::CRON_HOOK );
+	}
+
+	/**
+	 * Work through the rebuild for a bounded slice of time, then reschedule if
+	 * there is more to do. Cron callback.
+	 */
+	public function run_background() {
+		$state = self::state();
+
+		if ( empty( $state['running'] ) ) {
+			$this->start();
+		}
+
+		$deadline = time() + self::CRON_RUN_SECONDS;
+
+		do {
+			$progress = $this->tick();
+			if ( ! $progress['running'] ) {
+				return;
+			}
+		} while ( time() < $deadline );
+
+		wp_schedule_single_event( time() + 10, self::CRON_HOOK );
 	}
 
 	/**
@@ -162,23 +214,69 @@ final class Coywolf_Search_Rebuilder {
 			return $this->progress( $state );
 		}
 
-		$post_ids = $this->next_batch( (int) $state['offset'] );
-
-		if ( empty( $post_ids ) ) {
-			return $this->finish( $state );
+		// A rebuild can be advanced from two places at once — someone watching
+		// the progress bar while the background runner is also working. Both
+		// read the offset, so without a claim they would index the same batch
+		// twice and advance past the next one, silently skipping posts.
+		if ( ! $this->claim_tick() ) {
+			return $this->progress( $state );
 		}
 
-		$indexer = new Coywolf_Search_Indexer();
-		foreach ( $post_ids as $post_id ) {
-			$indexer->index_post( (int) $post_id );
+		try {
+			$post_ids = $this->next_batch( (int) $state['offset'] );
+
+			if ( empty( $post_ids ) ) {
+				return $this->finish( $state );
+			}
+
+			$indexer = new Coywolf_Search_Indexer();
+			foreach ( $post_ids as $post_id ) {
+				$indexer->index_post( (int) $post_id );
+			}
+
+			$state['offset']     = (int) $state['offset'] + count( $post_ids );
+			$state['done']       = (int) $state['done'] + count( $post_ids );
+			$state['lock_until'] = time() + self::LOCK_SECONDS;
+			self::save_state( $state );
+
+			return $this->progress( $state );
+		} finally {
+			$this->release_tick();
+		}
+	}
+
+	/**
+	 * Claim the right to advance the rebuild by one batch.
+	 *
+	 * `add_option()` is the claim: the options table has a unique index on the
+	 * name, so exactly one caller can create the row.
+	 *
+	 * @return bool
+	 */
+	private function claim_tick() {
+		$now = time();
+
+		if ( add_option( self::TICK_LOCK, $now, '', false ) ) {
+			return true;
 		}
 
-		$state['offset']     = (int) $state['offset'] + count( $post_ids );
-		$state['done']       = (int) $state['done'] + count( $post_ids );
-		$state['lock_until'] = time() + self::LOCK_SECONDS;
-		self::save_state( $state );
+		$held = (int) get_option( self::TICK_LOCK, 0 );
 
-		return $this->progress( $state );
+		// A claim left behind by a request that died mid-batch expires rather
+		// than wedging the rebuild forever.
+		if ( $held > 0 && ( $now - $held ) < self::TICK_LOCK_SECONDS ) {
+			return false;
+		}
+
+		update_option( self::TICK_LOCK, $now, false );
+		return true;
+	}
+
+	/**
+	 * Give up the claim.
+	 */
+	private function release_tick() {
+		delete_option( self::TICK_LOCK );
 	}
 
 	/**
@@ -316,5 +414,6 @@ final class Coywolf_Search_Rebuilder {
 	 */
 	public static function reset() {
 		delete_option( self::STATE_OPTION );
+		delete_option( self::TICK_LOCK );
 	}
 }
