@@ -191,14 +191,36 @@ final class Coywolf_Search_Settings {
 
 		self::$cache = $out;
 
-		// A change to any tokenization-affecting setting invalidates the
-		// stored index: terms were written under the old rules and would no
-		// longer match what the query pipeline produces.
-		if ( self::pipeline_hash( $current ) !== self::pipeline_hash( $out ) ) {
-			update_option( 'coywolf_search_index_stale', 1, false );
+		return $out;
+	}
+
+	/**
+	 * React to a saved settings change.
+	 *
+	 * A change to anything that affects what gets written invalidates the
+	 * stored index — terms were written under the old rules and would no
+	 * longer match what the query pipeline produces — so a rebuild is queued
+	 * straight away rather than left for someone to trigger by hand.
+	 *
+	 * @param mixed $old_value Previous settings.
+	 * @param mixed $value     New settings.
+	 */
+	public static function on_updated( $old_value, $value ) {
+		self::flush();
+
+		if ( ! is_array( $value ) ) {
+			return;
 		}
 
-		return $out;
+		$before = is_array( $old_value ) ? array_merge( self::defaults(), $old_value ) : self::defaults();
+		$after  = array_merge( self::defaults(), $value );
+
+		if ( self::pipeline_hash( $before ) === self::pipeline_hash( $after ) ) {
+			return;
+		}
+
+		update_option( 'coywolf_search_index_stale', 1, false );
+		Coywolf_Search_Rebuilder::schedule_auto_rebuild();
 	}
 
 	/**

@@ -40,6 +40,7 @@ function coywolf_search_uninstall_site() {
 		'coywolf_search_db_version',
 		'coywolf_search_index_stale',
 		'coywolf_search_needs_first_build',
+		'coywolf_search_tick_lock',
 	);
 
 	foreach ( $coywolf_search_options as $coywolf_search_option ) {
@@ -68,6 +69,7 @@ function coywolf_search_uninstall_site() {
 	}
 
 	wp_unschedule_hook( 'coywolf_search_process_queue' );
+	wp_unschedule_hook( 'coywolf_search_rebuild_batch' );
 	wp_unschedule_hook( 'coywolf_search_refresh_release' );
 
 	// Generated typeahead payloads live under uploads.

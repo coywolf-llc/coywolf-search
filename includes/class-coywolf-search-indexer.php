@@ -193,7 +193,20 @@ final class Coywolf_Search_Indexer {
 		if ( wp_next_scheduled( self::CRON_HOOK ) ) {
 			return;
 		}
-		wp_schedule_single_event( time() + self::DEBOUNCE_SECONDS, self::CRON_HOOK );
+
+		/**
+		 * Filters how long to wait before reindexing edited posts.
+		 *
+		 * Lower it to make edits searchable sooner, at the cost of collapsing
+		 * fewer edits into one run. WP-Cron only fires on a page request, so
+		 * the real delay on a quiet site is this plus the wait for the next
+		 * visitor.
+		 *
+		 * @param int $seconds Debounce window in seconds.
+		 */
+		$delay = (int) apply_filters( 'coywolf_search_reindex_delay', self::DEBOUNCE_SECONDS );
+
+		wp_schedule_single_event( time() + max( 1, $delay ), self::CRON_HOOK );
 	}
 
 	/**

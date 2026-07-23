@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -15,6 +15,8 @@ WordPress searches posts with a `LIKE '%term%'` scan of the posts table. It cann
 - **AND matching** with an optional coverage-ranked OR fallback when nothing matches everything.
 - **Per-post-type and per-taxonomy control** over what is searchable.
 - **Optional English stemming** and built-in or custom stopword lists.
+- **Self-maintaining index.** Builds on activation, reindexes edits in the background, and rebuilds itself when a setting changes what would be stored.
+- **Read-only search API** at `GET /wp-json/coywolf-search/v1/search?q=…`, returning ranked results with highlighted snippets.
 - **No outbound network calls.** No telemetry, no remote assets.
 
 Your theme is untouched: `/?s=` and `get_search_form()` keep working and pagination behaves normally. If the index is empty or the engine errors, WordPress runs its own search instead.
@@ -32,6 +34,7 @@ Your theme is untouched: `/?s=` and `get_search_form()` keep working and paginat
 | Vocabulary cache and term expansion | `includes/class-coywolf-search-vocabulary.php` |
 | Query pipeline and BM25 scoring | `includes/class-coywolf-search-query-engine.php` |
 | `posts_pre_query` integration | `includes/class-coywolf-search-query-integration.php` |
+| REST search endpoint | `includes/class-coywolf-search-rest.php` |
 | Settings → Search | `includes/class-coywolf-search-admin.php` |
 
 ### Schema
@@ -50,6 +53,9 @@ coywolf_search_postings   term_id, post_id, field, tf, dl   PK (term_id, post_id
 | `coywolf_search_enabled` | Return false to fall back to native WordPress search for a request. |
 | `coywolf_search_results` | Filter the ranked post IDs before pagination. |
 | `coywolf_search_should_index` | Exclude a post from the index. |
+| `coywolf_search_reindex_delay` | Seconds to debounce reindexing after an edit (default 60). |
+| `coywolf_search_rate_limit` | Requests allowed per throttle bucket per minute (default 120; 0 disables). |
+| `coywolf_search_client_ip` | Override the address the REST throttle buckets on. |
 
 <!-- wporg-strip:start — describes the GitHub distribution, which the WordPress.org build is not -->
 ## Development
@@ -62,6 +68,11 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.1.0
+- The index now builds itself on activation, and rebuilds itself whenever a setting changes what would be stored.
+- Added a public read-only search API at `coywolf-search/v1/search`, returning ranked results with highlighted snippets.
+- Reindexing delay after a post is edited is now filterable via `coywolf_search_reindex_delay`.
 
 ### 1.0.0
 - Initial release: custom full-text index, BM25 ranking with per-field weights, fuzzy and prefix matching, per-post-type and per-taxonomy control, optional stemming and stopwords, and a batched index rebuild.
