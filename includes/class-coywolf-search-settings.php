@@ -66,6 +66,7 @@ final class Coywolf_Search_Settings {
 			'typeahead_max'      => 8,
 			'typeahead_debounce' => 200,
 			'typeahead_enter'    => true,
+			'typeahead_show_type' => false,
 		);
 	}
 
@@ -187,7 +188,8 @@ final class Coywolf_Search_Settings {
 		$out['typeahead']          = ! empty( $input['typeahead'] );
 		$out['typeahead_max']      = self::clamp_int( $input, 'typeahead_max', 1, 20, $defaults['typeahead_max'] );
 		$out['typeahead_debounce'] = self::clamp_int( $input, 'typeahead_debounce', 0, 2000, $defaults['typeahead_debounce'] );
-		$out['typeahead_enter']    = ! empty( $input['typeahead_enter'] );
+		$out['typeahead_enter']     = ! empty( $input['typeahead_enter'] );
+		$out['typeahead_show_type'] = ! empty( $input['typeahead_show_type'] );
 
 		self::$cache = $out;
 

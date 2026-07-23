@@ -54,6 +54,7 @@ final class Coywolf_Search_Lifecycle {
 		wp_unschedule_hook( 'coywolf_search_refresh_release' );
 
 		Coywolf_Search_Vocabulary::invalidate();
+		Coywolf_Search_Typeahead::invalidate();
 		Coywolf_Search_Rebuilder::reset();
 
 		delete_option( Coywolf_Search_Indexer::QUEUE_OPTION );

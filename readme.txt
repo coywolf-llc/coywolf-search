@@ -1,14 +1,14 @@
 === Coywolf Search ===
 Contributors: jonhenshaw
-Tags: search, relevance, bm25, full-text search, fuzzy search
+Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
+Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy matching, and instant as-you-type suggestions.
 
 == Description ==
 
@@ -24,6 +24,7 @@ Coywolf Search replaces that with a proper search engine, built out of two small
 * **AND matching with a graceful fallback.** Results must contain every word; if nothing does, you can choose to show posts containing some of them, ranked by how many they cover.
 * **Per-post-type and per-taxonomy control.** Choose exactly which post types are searchable and which taxonomies contribute their term names.
 * **Optional English stemming and stopwords**, with your own stopword list if the built-in one isn't right for your content.
+* **Suggestions as you type.** Matches appear on the keystroke — instantly from a small index of titles held in the browser, then merged with full-text results from the server a moment later. The first suggestion is highlighted so it is obvious what Enter will open; the arrow keys move between them, Escape clears the box, and a clear button does the same with the mouse. It attaches itself to whatever search box your theme already has, whether that came from the search block or `get_search_form()`.
 * **It looks after its own index.** The first build starts the moment you activate the plugin, edits are picked up in the background, and changing a setting that affects what gets stored queues a rebuild automatically.
 * **A read-only search API.** `GET /wp-json/coywolf-search/v1/search?q=…` returns the same ranked results as a search page, with a highlighted snippet for each, so you can build a custom search experience against the same engine.
 
@@ -74,6 +75,18 @@ The **Rebuild index** button on Settings → Search is there for the cases where
 
 Nothing breaks. A rebuild clears the index and refills it, and while it is empty WordPress answers searches with its own built-in search — so visitors always get results, they just get better ones once the rebuild finishes. On a large site a rebuild runs in background batches over a few minutes.
 
+= Does the typeahead slow my pages down? =
+
+It is built not to. Nothing loads on a page with no search box at all. On a page that has one, the only thing that loads up front is a small deferred script — the search library and the list of titles are fetched the first time somebody actually interacts with a search field, so visitors who never search never download them.
+
+= Does the typeahead work with my theme's search form? =
+
+It attaches to any search form on the page, whether it came from the search block, `get_search_form()`, or hand-written markup, and it does it without altering your theme's markup. If your form is unusual enough that it is missed, the `coywolf_search_should_enqueue` filter lets you force it on.
+
+= What if a visitor has JavaScript turned off? =
+
+The search form behaves exactly as it always did: it submits, and the server answers with the same ranked results. The suggestions are an enhancement on top, never a requirement.
+
 = Is there an API I can query? =
 
 Yes. `GET /wp-json/coywolf-search/v1/search?q=your+search` returns ranked results as JSON — title, permalink, date, post type, and a snippet with the matched words wrapped in `<mark>`. It accepts `page` and `per_page`, is read-only, and only ever returns content that is already public. It is rate-limited per visitor to keep it from being used to hammer your database.
@@ -96,6 +109,12 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 2. Ranking and matching controls, including BM25 tuning and per-field weights.
 
 == Changelog ==
+
+= 1.2.0 =
+* Added instant as-you-type suggestions, with the first result highlighted so Enter's target is always visible, arrow-key navigation, Escape to clear, and a clear button.
+* Suggestions attach to any theme's search form without modifying its markup.
+* The search library and the title list load only when a visitor first interacts with a search box, so pages nobody searches from download nothing extra.
+* Added a setting for whether to show the content type beside each suggestion (off by default).
 
 = 1.1.0 =
 * The index now builds itself on activation, and rebuilds itself whenever a setting changes what would be stored — no button press needed.

@@ -1,0 +1,130 @@
+/**
+ * Coywolf Search — suggestion list.
+ *
+ * Deliberately quiet: it inherits the theme's font and colours rather than
+ * imposing its own, so the dropdown reads as part of whatever search box it
+ * attached itself to.
+ *
+ * Both elements are positioned against the document rather than wrapped around
+ * the theme's input, so nothing here depends on how a theme lays its search
+ * form out.
+ */
+
+.coywolf-search-clear {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(127, 127, 127, 0.18);
+	color: inherit;
+	cursor: pointer;
+	opacity: 0.75;
+	z-index: 99;
+}
+
+.coywolf-search-clear:hover,
+.coywolf-search-clear:focus-visible {
+	opacity: 1;
+	background: rgba(127, 127, 127, 0.32);
+}
+
+.coywolf-search-clear[hidden] {
+	display: none;
+}
+
+.coywolf-search-suggestions {
+	position: absolute;
+	/* Explicit, because the width set on this element is the input's width and
+	   a theme's box-sizing must not make the dropdown overhang it. */
+	box-sizing: border-box;
+	z-index: 100;
+	max-height: min(60vh, 26em);
+	overflow-y: auto;
+	background: Canvas;
+	color: CanvasText;
+	border: 1px solid rgba(127, 127, 127, 0.35);
+	border-radius: 6px;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+	text-align: start;
+}
+
+.coywolf-search-suggestions[hidden] {
+	display: none;
+}
+
+.coywolf-search-option {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 0 0.75em;
+	padding: 0.6em 0.85em;
+	cursor: pointer;
+	border-bottom: 1px solid rgba(127, 127, 127, 0.16);
+	line-height: 1.35;
+}
+
+.coywolf-search-option:last-child {
+	border-bottom: 0;
+}
+
+/* The first suggestion selects itself as results appear, so this has to read
+   clearly as "Enter opens this" rather than as a faint hover tint. */
+.coywolf-search-option.is-active {
+	background: rgba(127, 127, 127, 0.2);
+	box-shadow: inset 3px 0 0 0 currentColor;
+}
+
+@media (forced-colors: active) {
+	.coywolf-search-option.is-active {
+		background: Highlight;
+		color: HighlightText;
+	}
+}
+
+.coywolf-search-title {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.coywolf-search-type {
+	font-size: 0.75em;
+	opacity: 0.65;
+	white-space: nowrap;
+	align-self: center;
+}
+
+.coywolf-search-snippet {
+	grid-column: 1 / -1;
+	margin-top: 0.2em;
+	font-size: 0.85em;
+	opacity: 0.8;
+	overflow-wrap: anywhere;
+}
+
+.coywolf-search-suggestions mark {
+	background: transparent;
+	color: inherit;
+	font-weight: 700;
+	padding: 0;
+}
+
+/* The live region announces the suggestion count without showing it. */
+.coywolf-search-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.coywolf-search-option {
+		transition: background-color 90ms ease;
+	}
+}

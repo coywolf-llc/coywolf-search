@@ -50,6 +50,20 @@ final class Coywolf_Search_Plugin {
 	private $rest;
 
 	/**
+	 * Typeahead payload.
+	 *
+	 * @var Coywolf_Search_Typeahead
+	 */
+	private $typeahead;
+
+	/**
+	 * Front-end assets.
+	 *
+	 * @var Coywolf_Search_Assets
+	 */
+	private $assets;
+
+	/**
 	 * Admin screen.
 	 *
 	 * @var Coywolf_Search_Admin
@@ -77,12 +91,19 @@ final class Coywolf_Search_Plugin {
 		$this->rebuilder   = new Coywolf_Search_Rebuilder();
 		$this->integration = new Coywolf_Search_Query_Integration();
 		$this->rest        = new Coywolf_Search_REST_Controller();
+		$this->typeahead   = new Coywolf_Search_Typeahead();
+		$this->assets      = new Coywolf_Search_Assets();
 		$this->admin       = new Coywolf_Search_Admin();
 
 		$this->indexer->init();
 		$this->rebuilder->init();
 		$this->integration->init();
 		$this->rest->init();
+		$this->typeahead->init();
+
+		if ( ! is_admin() ) {
+			$this->assets->init();
+		}
 
 		if ( is_admin() ) {
 			$this->admin->init();
