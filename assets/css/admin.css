@@ -1,0 +1,66 @@
+.coywolf-search-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 20px 0;
+	padding: 4px 20px 16px;
+}
+
+.coywolf-search-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 28px;
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.coywolf-search-stats li {
+	margin: 0;
+}
+
+.coywolf-search-stats strong {
+	display: block;
+	font-size: 20px;
+	line-height: 1.2;
+}
+
+.coywolf-search-stats span {
+	color: #646970;
+	font-size: 12px;
+}
+
+.coywolf-search-progress {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin-left: 10px;
+	vertical-align: middle;
+}
+
+/* A display value on the element itself beats the browser's [hidden] rule. */
+.coywolf-search-progress[hidden] {
+	display: none;
+}
+
+.coywolf-search-progress-bar {
+	display: inline-block;
+	width: 200px;
+	height: 8px;
+	border-radius: 4px;
+	background: #dcdcde;
+	overflow: hidden;
+}
+
+.coywolf-search-progress-bar span {
+	display: block;
+	height: 100%;
+	width: 0;
+	background: #2271b1;
+	transition: width 120ms linear;
+}
+
+.coywolf-search-progress-text {
+	color: #646970;
+	font-size: 12px;
+}

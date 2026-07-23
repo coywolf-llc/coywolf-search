@@ -2,6 +2,66 @@
 
 **Version:** 1.0.0
 
-Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and instant typeahead.
+Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
+
+WordPress searches posts with a `LIKE '%term%'` scan of the posts table. It cannot rank, it cannot tolerate a typo, and it gets slower as a site grows. Coywolf Search replaces that with a proper search engine built out of two small tables of its own.
+
+## Features
+
+- **Custom full-text index.** Block markup, shortcodes, and HTML are stripped into a text projection before indexing. The posts table is never modified.
+- **BM25 ranking** with `k1` and `b` exposed for tuning.
+- **Per-field weights** for title, content, excerpt, and taxonomy terms.
+- **Fuzzy matching** (off / one character / automatic) and **prefix matching** on the last word.
+- **AND matching** with an optional coverage-ranked OR fallback when nothing matches everything.
+- **Per-post-type and per-taxonomy control** over what is searchable.
+- **Optional English stemming** and built-in or custom stopword lists.
+- **No outbound network calls.** No telemetry, no remote assets.
+
+Your theme is untouched: `/?s=` and `get_search_form()` keep working and pagination behaves normally. If the index is empty or the engine errors, WordPress runs its own search instead.
+
+## Architecture
+
+| Piece | File |
+| --- | --- |
+| Table definitions and teardown | `includes/class-coywolf-search-schema.php` |
+| Settings model, defaults, sanitisation | `includes/class-coywolf-search-settings.php` |
+| Text cleaning and tokenization | `includes/class-coywolf-search-tokenizer.php` |
+| Porter stemmer | `includes/class-coywolf-search-stemmer.php` |
+| Index writes, dirty queue, statistics | `includes/class-coywolf-search-indexer.php` |
+| Batched full rebuild | `includes/class-coywolf-search-rebuilder.php` |
+| Vocabulary cache and term expansion | `includes/class-coywolf-search-vocabulary.php` |
+| Query pipeline and BM25 scoring | `includes/class-coywolf-search-query-engine.php` |
+| `posts_pre_query` integration | `includes/class-coywolf-search-query-integration.php` |
+| Settings → Search | `includes/class-coywolf-search-admin.php` |
+
+### Schema
+
+```
+coywolf_search_terms      term_id, term (unique), doc_freq
+coywolf_search_postings   term_id, post_id, field, tf, dl   PK (term_id, post_id, field)
+```
+
+`field` is 0=title, 1=content, 2=excerpt, 3=taxonomy. `dl` carries the total token count of that post's field: BM25 needs the document length to normalise term frequency, and the sum of the *matched* terms' `tf` is not the document length. Denormalising it onto every posting row means the search path reads it in the same fetch as the postings — one query per search.
+
+### Filters
+
+| Filter | Purpose |
+| --- | --- |
+| `coywolf_search_enabled` | Return false to fall back to native WordPress search for a request. |
+| `coywolf_search_results` | Filter the ranked post IDs before pagination. |
+| `coywolf_search_should_index` | Exclude a post from the index. |
+
+<!-- wporg-strip:start — describes the GitHub distribution, which the WordPress.org build is not -->
+## Development
+
+Work happens on feature branches merged to `main` by PR. Merging triggers `.github/workflows/release.yml`, which bumps the patch version, tags a GitHub release with the plugin zip, and builds the WordPress.org variant as an artifact.
+
+The GitHub build ships a self-updater so installed copies track releases directly. The WordPress.org build must not, so `.github/build-wporg.sh` strips that class, the marked regions in the main file, and the update-source header — then fails the build if any trace survives.
+
+Deploying to the WordPress.org SVN repository is deliberately manual: run the **Deploy to WordPress.org (manual)** workflow when a release should actually ship.
+<!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.0.0
+- Initial release: custom full-text index, BM25 ranking with per-field weights, fuzzy and prefix matching, per-post-type and per-taxonomy control, optional stemming and stopwords, and a batched index rebuild.
