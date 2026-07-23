@@ -57,10 +57,21 @@
 	height: 100%;
 	width: 0;
 	background: #2271b1;
-	transition: width 120ms linear;
 }
 
 .coywolf-search-progress-text {
 	color: #646970;
 	font-size: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.coywolf-search-progress-bar span {
+		transition: width 120ms linear;
+	}
+}
+
+/* aria-disabled carries the semantics; this carries the look. */
+#coywolf-search-rebuild.is-busy {
+	pointer-events: none;
+	opacity: 0.7;
 }

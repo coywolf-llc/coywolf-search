@@ -83,11 +83,9 @@ final class Coywolf_Search_Assets {
 			)
 		);
 
-		wp_add_inline_script(
-			self::HANDLE_SCRIPT,
-			'window.coywolfSearchTypeahead = ' . wp_json_encode( $this->config() ) . ';',
-			'before'
-		);
+		// The boot config is attached in maybe_enqueue(), not here: building it
+		// reads the index stats, and registration runs on every front-end page
+		// view while the config is only needed on pages that enqueue.
 	}
 
 	/**
@@ -101,6 +99,7 @@ final class Coywolf_Search_Assets {
 		return array(
 			'searchUrl'     => rest_url( Coywolf_Search_REST_Controller::NAMESPACE_V1 . '/search' ),
 			'docsUrl'       => add_query_arg( 'v', $version, rest_url( Coywolf_Search_REST_Controller::NAMESPACE_V1 . '/typeahead' ) ),
+			'docsVersion'   => $version,
 			'libraryUrl'    => COYWOLF_SEARCH_URL . 'assets/js/vendor/minisearch/minisearch.umd.js?ver=' . rawurlencode( COYWOLF_SEARCH_VERSION ),
 			'max'           => (int) Coywolf_Search_Settings::get( 'typeahead_max' ),
 			'debounce'      => (int) Coywolf_Search_Settings::get( 'typeahead_debounce' ),
@@ -109,11 +108,11 @@ final class Coywolf_Search_Assets {
 			'minChars'      => max( 1, (int) Coywolf_Search_Settings::get( 'min_token_length' ) ),
 			'strings'       => array(
 				'clear'      => __( 'Clear search', 'coywolf-search' ),
-				'noResults'  => __( 'No matches', 'coywolf-search' ),
-				'viewAll'    => __( 'See all results', 'coywolf-search' ),
+				'listLabel'  => __( 'Search suggestions', 'coywolf-search' ),
+				'noResults'  => __( 'No matching suggestions.', 'coywolf-search' ),
 				/* translators: %d: number of suggestions available. */
-				'available'  => __( '%d suggestions available. Use the up and down arrows to review, and Enter to open.', 'coywolf-search' ),
-				'searching'  => __( 'Searching…', 'coywolf-search' ),
+				'available'  => __( '%d suggestions available.', 'coywolf-search' ),
+				'hint'       => __( 'Use the arrow keys to review suggestions and Enter to open one. Escape closes the list.', 'coywolf-search' ),
 			),
 		);
 	}
@@ -167,5 +166,11 @@ final class Coywolf_Search_Assets {
 
 		wp_enqueue_style( self::HANDLE_STYLE );
 		wp_enqueue_script( self::HANDLE_SCRIPT );
+
+		wp_add_inline_script(
+			self::HANDLE_SCRIPT,
+			'window.coywolfSearchTypeahead = ' . wp_json_encode( $this->config() ) . ';',
+			'before'
+		);
 	}
 }

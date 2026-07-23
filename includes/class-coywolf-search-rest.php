@@ -48,6 +48,18 @@ final class Coywolf_Search_REST_Controller {
 	const BUCKET_CHARS = 3;
 
 	/**
+	 * Multiple of the per-visitor limit allowed per connecting address.
+	 *
+	 * The forwarded header the visitor-level throttle buckets on is spoofable,
+	 * so on its own it can be rotated past. This second layer counts requests
+	 * by the address the connection actually came from, which cannot be faked.
+	 * It is deliberately loose — behind a proxy that address is an edge server
+	 * shared by many real visitors — but it turns "unlimited via header
+	 * rotation" into a hard per-connection ceiling.
+	 */
+	const TRANSPORT_MULTIPLIER = 10;
+
+	/**
 	 * Register the route.
 	 */
 	public function init() {
@@ -352,7 +364,21 @@ final class Coywolf_Search_REST_Controller {
 	/* --------------------------------------------------------------------- */
 
 	/**
-	 * Count this request against its bucket, refusing it if the bucket is full.
+	 * Count this request against its buckets, refusing it if either is full.
+	 *
+	 * Two layers, because the two addresses involved have opposite failure
+	 * modes. The visitor layer buckets on the forwarded client address — fair
+	 * to individual visitors behind a shared proxy, but spoofable, since the
+	 * header is caller-supplied. The transport layer buckets on the connecting
+	 * address — unforgeable, but shared by everyone behind the same proxy
+	 * edge, so its limit is a multiple of the visitor limit. Rotating the
+	 * forwarded header now buys nothing: every spoofed request still lands in
+	 * the same transport bucket.
+	 *
+	 * Buckets are derived with wp_hash(), not plain md5: a salted hash means
+	 * an attacker cannot precompute which forged address shares a victim's
+	 * bucket, which would otherwise allow filling a target's bucket on
+	 * purpose.
 	 *
 	 * @return true|WP_Error
 	 */
@@ -368,20 +394,49 @@ final class Coywolf_Search_REST_Controller {
 			return true;
 		}
 
-		$key   = 'coywolf_search_rl_' . substr( md5( $this->client_ip() ), 0, self::BUCKET_CHARS );
-		$count = (int) get_transient( $key );
+		$layers = array(
+			array( 'coywolf_search_rl_', $this->client_ip(), $limit ),
+			array( 'coywolf_search_rlt_', $this->remote_addr(), $limit * self::TRANSPORT_MULTIPLIER ),
+		);
 
-		if ( $count >= $limit ) {
-			return new WP_Error(
-				'coywolf_search_rate_limited',
-				__( 'Too many searches. Please wait a moment and try again.', 'coywolf-search' ),
-				array( 'status' => 429 )
-			);
+		$keys = array();
+		foreach ( $layers as $layer ) {
+			$key   = $layer[0] . substr( wp_hash( $layer[1] ), 0, self::BUCKET_CHARS );
+			$count = (int) get_transient( $key );
+
+			if ( $count >= $layer[2] ) {
+				return new WP_Error(
+					'coywolf_search_rate_limited',
+					__( 'Too many searches. Please wait a moment and try again.', 'coywolf-search' ),
+					array( 'status' => 429 )
+				);
+			}
+
+			$keys[ $key ] = $count;
 		}
 
-		set_transient( $key, $count + 1, self::RATE_WINDOW );
+		// Recorded only after both layers pass, so a refused request costs the
+		// caller nothing and cannot be used to inflate someone else's bucket.
+		foreach ( $keys as $key => $count ) {
+			set_transient( $key, $count + 1, self::RATE_WINDOW );
+		}
 
 		return true;
+	}
+
+	/**
+	 * The address this request actually connected from.
+	 *
+	 * @return string
+	 */
+	private function remote_addr() {
+		if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			return 'unknown';
+		}
+
+		$value = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+
+		return filter_var( $value, FILTER_VALIDATE_IP ) ? $value : 'unknown';
 	}
 
 	/**

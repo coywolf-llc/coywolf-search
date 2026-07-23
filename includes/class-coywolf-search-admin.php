@@ -233,10 +233,12 @@ final class Coywolf_Search_Admin {
 	 */
 	public function field_post_types() {
 		$selected = (array) Coywolf_Search_Settings::get( 'post_types' );
+		$this->open_group( __( 'Post types to index', 'coywolf-search' ), 'coywolf-search-post-types-desc' );
 		foreach ( Coywolf_Search_Settings::available_post_types() as $slug => $label ) {
 			$this->checkbox( 'post_types', $slug, $label, in_array( $slug, $selected, true ) );
 		}
-		echo '<p class="description">' . esc_html__( 'Password-protected posts are never indexed, and drafts, private, and scheduled posts only enter the index once they are published.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-post-types-desc">' . esc_html__( 'Password-protected posts are never indexed, and drafts, private, and scheduled posts only enter the index once they are published.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
@@ -244,10 +246,12 @@ final class Coywolf_Search_Admin {
 	 */
 	public function field_taxonomies() {
 		$selected = (array) Coywolf_Search_Settings::get( 'taxonomies' );
+		$this->open_group( __( 'Taxonomies to index', 'coywolf-search' ), 'coywolf-search-taxonomies-desc' );
 		foreach ( Coywolf_Search_Settings::available_taxonomies() as $slug => $label ) {
 			$this->checkbox( 'taxonomies', $slug, $label, in_array( $slug, $selected, true ) );
 		}
-		echo '<p class="description">' . esc_html__( 'Term names are indexed alongside the post, so a search for a category name finds posts in it.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-taxonomies-desc">' . esc_html__( 'Term names are indexed alongside the post, so a search for a category name finds posts in it.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
@@ -260,9 +264,11 @@ final class Coywolf_Search_Admin {
 			'content' => __( 'Content', 'coywolf-search' ),
 			'excerpt' => __( 'Excerpt', 'coywolf-search' ),
 		);
+		$this->open_group( __( 'Fields to index', 'coywolf-search' ) );
 		foreach ( $labels as $slug => $label ) {
 			$this->checkbox( 'fields', $slug, $label, in_array( $slug, $selected, true ) );
 		}
+		$this->close_group();
 	}
 
 	/**
@@ -275,19 +281,23 @@ final class Coywolf_Search_Admin {
 			'weight_excerpt'  => __( 'Excerpt', 'coywolf-search' ),
 			'weight_taxonomy' => __( 'Taxonomy', 'coywolf-search' ),
 		);
+		$this->open_group( __( 'Field weights', 'coywolf-search' ), 'coywolf-search-weights-desc' );
 		foreach ( $labels as $key => $label ) {
 			$this->number( $key, $label, 0, 10, 0.1 );
 		}
-		echo '<p class="description">' . esc_html__( 'A match in a higher-weighted field counts for more. Set a weight to 0 to ignore that field when ranking.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-weights-desc">' . esc_html__( 'A match in a higher-weighted field counts for more. Set a weight to 0 to ignore that field when ranking.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
 	 * BM25 inputs.
 	 */
 	public function field_bm25() {
+		$this->open_group( __( 'BM25 tuning', 'coywolf-search' ), 'coywolf-search-bm25-desc' );
 		$this->number( 'bm25_k1', __( 'k1 (term frequency saturation)', 'coywolf-search' ), 0, 3, 0.1 );
 		$this->number( 'bm25_b', __( 'b (length normalisation)', 'coywolf-search' ), 0, 1, 0.05 );
-		echo '<p class="description">' . esc_html__( 'Defaults of 1.2 and 0.75 suit most sites. Raise k1 to reward repeated terms more; lower b to stop long posts being penalised.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-bm25-desc">' . esc_html__( 'Defaults of 1.2 and 0.75 suit most sites. Raise k1 to reward repeated terms more; lower b to stop long posts being penalised.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
@@ -300,7 +310,8 @@ final class Coywolf_Search_Admin {
 			'one'  => __( 'One character', 'coywolf-search' ),
 			'auto' => __( 'Automatic (two for long terms)', 'coywolf-search' ),
 		);
-		echo '<select name="' . esc_attr( Coywolf_Search_Settings::OPTION . '[fuzzy]' ) . '">';
+		$this->open_group( __( 'Fuzzy matching', 'coywolf-search' ), 'coywolf-search-fuzzy-desc' );
+		echo '<select name="' . esc_attr( Coywolf_Search_Settings::OPTION . '[fuzzy]' ) . '" aria-label="' . esc_attr__( 'Fuzzy matching behaviour', 'coywolf-search' ) . '">';
 		foreach ( $options as $key => $label ) {
 			printf(
 				'<option value="%s"%s>%s</option>',
@@ -311,15 +322,18 @@ final class Coywolf_Search_Admin {
 		}
 		echo '</select> ';
 		$this->number( 'fuzzy_min_length', __( 'Minimum term length', 'coywolf-search' ), 2, 12, 1 );
-		echo '<p class="description">' . esc_html__( 'Tolerates typos. Unavailable on very large vocabularies, where the index status below says so.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-fuzzy-desc">' . esc_html__( 'Tolerates typos. Unavailable on very large vocabularies, where the index status below says so.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
 	 * Prefix matching controls.
 	 */
 	public function field_prefix() {
+		$this->open_group( __( 'Prefix matching', 'coywolf-search' ) );
 		$this->toggle( 'prefix_last', __( 'Match the last word as a prefix', 'coywolf-search' ) );
 		$this->number( 'max_expansions', __( 'Maximum term expansions', 'coywolf-search' ), 1, 500, 1 );
+		$this->close_group();
 	}
 
 	/**
@@ -346,7 +360,8 @@ final class Coywolf_Search_Admin {
 			'builtin' => __( 'Skip common English words', 'coywolf-search' ),
 			'custom'  => __( 'Skip my own list', 'coywolf-search' ),
 		);
-		echo '<select name="' . esc_attr( Coywolf_Search_Settings::OPTION . '[stopwords_mode]' ) . '">';
+		$this->open_group( __( 'Stopwords', 'coywolf-search' ) );
+		echo '<select name="' . esc_attr( Coywolf_Search_Settings::OPTION . '[stopwords_mode]' ) . '" aria-label="' . esc_attr__( 'Stopword handling', 'coywolf-search' ) . '">';
 		foreach ( $options as $key => $label ) {
 			printf(
 				'<option value="%s"%s>%s</option>',
@@ -358,31 +373,65 @@ final class Coywolf_Search_Admin {
 		echo '</select>';
 
 		printf(
-			'<p><textarea name="%s" rows="6" cols="40" class="large-text code" placeholder="%s">%s</textarea></p>',
+			'<p><textarea name="%s" rows="6" cols="40" class="large-text code" aria-label="%s" placeholder="%s">%s</textarea></p>',
 			esc_attr( Coywolf_Search_Settings::OPTION . '[stopwords_custom]' ),
+			esc_attr__( 'Custom stopword list, one word per line', 'coywolf-search' ),
 			esc_attr__( 'One word per line', 'coywolf-search' ),
 			esc_textarea( (string) Coywolf_Search_Settings::get( 'stopwords_custom' ) )
 		);
+		$this->close_group();
 	}
 
 	/**
 	 * Stemming toggle.
 	 */
 	public function field_stemming() {
+		$this->open_group( __( 'Stemming', 'coywolf-search' ), 'coywolf-search-stemming-desc' );
 		$this->toggle( 'stemming', __( 'Match different forms of the same word (run, running, ran)', 'coywolf-search' ) );
-		echo '<p class="description">' . esc_html__( 'English only. Turning this on or off changes what is stored, so the index needs rebuilding.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-stemming-desc">' . esc_html__( 'English only. Turning this on or off changes what is stored, so the index needs rebuilding.', 'coywolf-search' ) . '</p>';
 	}
 
 	/**
 	 * Typeahead controls.
 	 */
 	public function field_typeahead() {
+		$this->open_group( __( 'Instant suggestions', 'coywolf-search' ), 'coywolf-search-typeahead-desc' );
 		$this->toggle( 'typeahead', __( 'Suggest results as visitors type', 'coywolf-search' ) );
 		$this->number( 'typeahead_max', __( 'Maximum suggestions', 'coywolf-search' ), 1, 20, 1 );
 		$this->number( 'typeahead_debounce', __( 'Delay before searching (ms)', 'coywolf-search' ), 0, 2000, 10 );
 		$this->toggle( 'typeahead_enter', __( 'Highlight the first suggestion, so Enter opens it', 'coywolf-search' ) );
 		$this->toggle( 'typeahead_show_type', __( 'Show the content type beside each suggestion', 'coywolf-search' ) );
-		echo '<p class="description">' . esc_html__( 'With the first suggestion highlighted, Enter opens it and the arrow keys move between suggestions. Turn that off and Enter submits the search form as usual. Suggestions always fall back to a normal search when JavaScript is unavailable.', 'coywolf-search' ) . '</p>';
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-typeahead-desc">' . esc_html__( 'With the first suggestion highlighted, Enter opens it and the arrow keys move between suggestions. Turn that off and Enter submits the search form as usual. Suggestions always fall back to a normal search when JavaScript is unavailable.', 'coywolf-search' ) . '</p>';
+	}
+
+	/**
+	 * Open a named group of related controls.
+	 *
+	 * The Settings API puts the row's name in a table header cell, which is
+	 * not part of any control's accessible name — so "Title" the checkbox and
+	 * "Title" the weight spinner would otherwise announce identically. A
+	 * fieldset with a screen-reader legend gives every control inside it the
+	 * group's name as context.
+	 *
+	 * @param string $legend   Group name, already translated.
+	 * @param string $desc_id  Optional id of the description that qualifies
+	 *                         the whole group.
+	 */
+	private function open_group( $legend, $desc_id = '' ) {
+		printf(
+			'<fieldset%s><legend class="screen-reader-text">%s</legend>',
+			'' !== $desc_id ? ' aria-describedby="' . esc_attr( $desc_id ) . '"' : '',
+			esc_html( $legend )
+		);
+	}
+
+	/**
+	 * Close a group opened with open_group().
+	 */
+	private function close_group() {
+		echo '</fieldset>';
 	}
 
 	/**
@@ -500,8 +549,8 @@ final class Coywolf_Search_Admin {
 				<p>
 					<button type="button" class="button button-primary" id="coywolf-search-rebuild"><?php esc_html_e( 'Rebuild index', 'coywolf-search' ); ?></button>
 					<span id="coywolf-search-progress" class="coywolf-search-progress" hidden>
-						<span class="coywolf-search-progress-bar"><span></span></span>
-						<span class="coywolf-search-progress-text"></span>
+						<span class="coywolf-search-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="<?php esc_attr_e( 'Index rebuild progress', 'coywolf-search' ); ?>"><span></span></span>
+						<span class="coywolf-search-progress-text" role="status"></span>
 					</span>
 				</p>
 

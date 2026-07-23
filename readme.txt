@@ -3,7 +3,7 @@ Contributors: jonhenshaw
 Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.2.1
+Stable tag: 1.3.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -109,6 +109,15 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 2. Ranking and matching controls, including BM25 tuning and per-field weights.
 
 == Changelog ==
+
+= 1.3.0 =
+* Security: the search endpoint's rate limiting now counts requests by the connecting address as well as the visitor address, so a spoofed forwarded header can no longer sidestep it, and buckets are salted so nobody can aim traffic at another visitor's bucket.
+* Security: a search query is now capped at 16 words (6 with typo tolerance), and one search can no longer pull an unbounded number of index rows.
+* Security: unpublishing a post now also removes its title from the cached suggestion data, instead of it lingering for up to a day.
+* Accessibility: screen readers now hear when no suggestions match, when the count changes, and how the rebuild is progressing; keyboard focus survives starting a rebuild.
+* Accessibility: Escape now closes the suggestions first and only clears the field on a second press; suggestion highlights are underlined so they are visible in bold titles; every settings control now carries a proper name and group.
+* Performance: searches no longer load the full content of every matching post just to order results — broad searches on large sites are dramatically lighter.
+* Performance: the suggestion data is cached in the browser for the session and revalidates with ETags, so it is downloaded once instead of on every page view, even on sites whose page cache strips caching headers.
 
 = 1.2.1 =
 * Suggestions now keep a readable width when the search field itself is narrow, and stay inside the window rather than overflowing it.

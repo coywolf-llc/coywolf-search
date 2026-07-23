@@ -19,8 +19,24 @@
 		return;
 	}
 
+	var track = progress.querySelector( '.coywolf-search-progress-bar' );
 	var bar = progress.querySelector( '.coywolf-search-progress-bar span' );
 	var text = progress.querySelector( '.coywolf-search-progress-text' );
+	var busy = false;
+
+	/**
+	 * Mark the button busy without disabling it.
+	 *
+	 * A disabled element cannot hold focus, so flipping the real disabled
+	 * attribute while the button has focus silently dumps a keyboard user's
+	 * position to the top of the document. aria-disabled communicates the
+	 * state and the busy flag enforces it, and focus stays where it was.
+	 */
+	function setBusy( value ) {
+		busy = value;
+		button.setAttribute( 'aria-disabled', value ? 'true' : 'false' );
+		button.classList.toggle( 'is-busy', value );
+	}
 
 	function post( step ) {
 		var body = new FormData();
@@ -60,6 +76,7 @@
 	function paint( data ) {
 		progress.hidden = false;
 		bar.style.width = data.percent + '%';
+		track.setAttribute( 'aria-valuenow', String( Math.round( data.percent ) ) );
 		text.textContent = data.complete
 			? config.strings.done
 			: config.strings.building + ' ' + data.done + ' / ' + data.total;
@@ -70,7 +87,8 @@
 		progress.hidden = false;
 		text.textContent = config.strings.failed;
 		bar.style.width = '0%';
-		button.disabled = false;
+		track.setAttribute( 'aria-valuenow', '0' );
+		setBusy( false );
 	}
 
 	function run() {
@@ -81,16 +99,19 @@
 					run();
 					return;
 				}
-				button.disabled = false;
+				setBusy( false );
 			} )
 			.catch( fail );
 	}
 
 	button.addEventListener( 'click', function () {
+		if ( busy ) {
+			return;
+		}
 		if ( ! window.confirm( config.strings.confirm ) ) {
 			return;
 		}
-		button.disabled = true;
+		setBusy( true );
 		post( 'start' )
 			.then( function ( data ) {
 				paint( data );

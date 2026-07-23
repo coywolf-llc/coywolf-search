@@ -280,6 +280,12 @@ final class Coywolf_Search_Indexer {
 		update_option( self::QUEUE_OPTION, $remaining, false );
 
 		Coywolf_Search_Vocabulary::invalidate();
+
+		// The public typeahead payload has to move with the index: a title that
+		// was just unpublished must not keep being served from a day-old cached
+		// copy. The payload regenerates lazily on the next request for it.
+		Coywolf_Search_Typeahead::invalidate();
+
 		$this->refresh_term_count();
 
 		if ( ! empty( $remaining ) ) {

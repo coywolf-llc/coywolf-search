@@ -21,13 +21,14 @@
 	background: rgba(127, 127, 127, 0.18);
 	color: inherit;
 	cursor: pointer;
-	opacity: 0.75;
+	/* Full opacity: the icon inherits the theme's text colour, and dimming it
+	   would push an already-borderline theme colour below the 3:1 contrast
+	   floor for interface parts. Hover feedback comes from the background. */
 	z-index: 99;
 }
 
 .coywolf-search-clear:hover,
 .coywolf-search-clear:focus-visible {
-	opacity: 1;
 	background: rgba(127, 127, 127, 0.32);
 }
 
@@ -126,6 +127,15 @@ input[data-coywolf-search-bound]::-ms-clear {
 	color: inherit;
 	font-weight: 700;
 	padding: 0;
+}
+
+/* Titles are already bold, so weight alone cannot mark the matched words
+   there — 600 against 700 is invisible in most webfonts. The underline works
+   in any theme colour scheme without touching contrast. */
+.coywolf-search-title mark {
+	text-decoration: underline;
+	text-decoration-thickness: 2px;
+	text-underline-offset: 0.15em;
 }
 
 /* The live region announces the suggestion count without showing it. */
