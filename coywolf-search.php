@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       Coywolf Search
- * Plugin URI:        https://coywolf.com/plugins/coywolf-search/
+ * Plugin URI:        https://coywolf.com/apps/coywolf-search/
  * Description:       Replaces WordPress search with a custom full-text index — BM25 ranking, fuzzy and prefix matching, instant as-you-type suggestions, and per-post-type control.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.3
  * Requires PHP:      8.0
  * Author:            Coywolf LLC
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'COYWOLF_SEARCH_VERSION', '1.4.0' );
+define( 'COYWOLF_SEARCH_VERSION', '1.4.1' );
 define( 'COYWOLF_SEARCH_FILE', __FILE__ );
 define( 'COYWOLF_SEARCH_PATH', plugin_dir_path( __FILE__ ) );
 define( 'COYWOLF_SEARCH_URL', plugin_dir_url( __FILE__ ) );
