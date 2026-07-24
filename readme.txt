@@ -3,7 +3,7 @@ Contributors: jonhenshaw
 Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,10 +105,13 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 
 == Screenshots ==
 
-1. Settings → Search: index status and the batched rebuild.
-2. Ranking and matching controls, including BM25 tuning and per-field weights.
+1. Instant suggestions on the front end. As a visitor types, matching help articles appear below the search box with the query term highlighted in the title and a contextual excerpt from the matching content.
+2. The Search settings screen. Tune field weights, BM25 parameters, fuzzy and prefix matching, tokenization (minimum token length, stopwords, stemming), and typeahead behavior.
 
 == Changelog ==
+
+= 1.4.1 =
+* Updated the plugin's home page link and refreshed the screenshots.
 
 = 1.4.0 =
 * Suggestions that match nothing now say "No matching results." in the dropdown instead of the dropdown disappearing. The message cannot be selected or opened — Enter still runs a normal search.

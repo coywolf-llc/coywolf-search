@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.4.0
+**Version:** 1.4.1
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -74,6 +74,9 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.4.1
+- Plugin URI moved to https://coywolf.com/apps/coywolf-search/ and screenshots refreshed to the shipping UI.
 
 ### 1.4.0
 - Empty-state row ("No matching results.") in the dropdown, non-selectable and hidden from assistive software since the live region already announces it.
