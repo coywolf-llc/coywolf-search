@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.3.0
+**Version:** 1.4.0
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -74,6 +74,11 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.4.0
+- Empty-state row ("No matching results.") in the dropdown, non-selectable and hidden from assistive software since the live region already announces it.
+- Fade transition on open/close, gated behind `prefers-reduced-motion`.
+- Seven colour settings (list background/title/snippet; highlighted background/left-border/title/snippet) via the bundled jscolorpicker, emitted as CSS custom properties only when set — unset colours keep the theme-following defaults and forced-colours mode still wins.
 
 ### 1.3.0
 - Two-layer, salted rate limiting on the search endpoint (spoofed forwarded headers no longer bypass or poison it).

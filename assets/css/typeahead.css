@@ -62,8 +62,11 @@ input[data-coywolf-search-bound]::-ms-clear {
 	z-index: 100;
 	max-height: min(60vh, 26em);
 	overflow-y: auto;
-	background: Canvas;
-	color: CanvasText;
+	/* Every colour below falls back to what the panel used before it was
+	   configurable: system colours that follow the page into dark mode. A
+	   setting overrides one colour without disturbing the rest. */
+	background: var(--coywolf-search-bg, Canvas);
+	color: var(--coywolf-search-title, CanvasText);
 	border: 1px solid rgba(127, 127, 127, 0.35);
 	border-radius: 6px;
 	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
@@ -72,6 +75,15 @@ input[data-coywolf-search-bound]::-ms-clear {
 
 .coywolf-search-suggestions[hidden] {
 	display: none;
+}
+
+/* Shown in place of suggestions when a real query matches nothing. Not an
+   option: no pointer cursor, no hover or selected state, nothing to open. */
+.coywolf-search-empty {
+	padding: 0.75em 0.85em;
+	font-size: 0.9em;
+	opacity: 0.7;
+	cursor: default;
 }
 
 .coywolf-search-option {
@@ -91,12 +103,29 @@ input[data-coywolf-search-bound]::-ms-clear {
 /* The first suggestion selects itself as results appear, so this has to read
    clearly as "Enter opens this" rather than as a faint hover tint. */
 .coywolf-search-option.is-active {
-	background: rgba(127, 127, 127, 0.2);
-	box-shadow: inset 3px 0 0 0 currentColor;
+	background: var(--coywolf-search-active-bg, rgba(127, 127, 127, 0.2));
+	box-shadow: inset 3px 0 0 0 var(--coywolf-search-active-border, currentColor);
 }
 
+.coywolf-search-option.is-active .coywolf-search-title {
+	color: var(--coywolf-search-active-title, inherit);
+}
+
+.coywolf-search-option.is-active .coywolf-search-snippet {
+	color: var(--coywolf-search-active-snippet, inherit);
+}
+
+/* A visitor running forced colours has asked the OS to decide; configured
+   colours are overridden rather than fighting that. */
 @media (forced-colors: active) {
-	.coywolf-search-option.is-active {
+	.coywolf-search-suggestions {
+		background: Canvas;
+		color: CanvasText;
+	}
+
+	.coywolf-search-option.is-active,
+	.coywolf-search-option.is-active .coywolf-search-title,
+	.coywolf-search-option.is-active .coywolf-search-snippet {
 		background: Highlight;
 		color: HighlightText;
 	}
@@ -105,6 +134,7 @@ input[data-coywolf-search-bound]::-ms-clear {
 .coywolf-search-title {
 	font-weight: 600;
 	overflow-wrap: anywhere;
+	color: var(--coywolf-search-title, inherit);
 }
 
 .coywolf-search-type {
@@ -118,7 +148,10 @@ input[data-coywolf-search-bound]::-ms-clear {
 	grid-column: 1 / -1;
 	margin-top: 0.2em;
 	font-size: 0.85em;
-	opacity: 0.8;
+	/* Dimmed only while the colour is inherited — a chosen colour is shown as
+	   chosen, not at 80% of itself. */
+	opacity: var(--coywolf-search-snippet-opacity, 0.8);
+	color: var(--coywolf-search-snippet, inherit);
 	overflow-wrap: anywhere;
 }
 
@@ -154,5 +187,44 @@ input[data-coywolf-search-bound]::-ms-clear {
 @media (prefers-reduced-motion: no-preference) {
 	.coywolf-search-option {
 		transition: background-color 90ms ease;
+	}
+
+	/*
+	 * Animations rather than a transition from a hidden resting state, so the
+	 * panel is never invisible when animation does not run — a headless or
+	 * locked-down browser that skips these still shows a perfectly usable
+	 * dropdown, it just appears instantly. Durations track FADE_MS in
+	 * typeahead.js.
+	 */
+	.coywolf-search-suggestions.is-open {
+		animation: coywolf-search-in 140ms ease;
+	}
+
+	.coywolf-search-suggestions.is-closing {
+		animation: coywolf-search-out 140ms ease forwards;
+	}
+}
+
+@keyframes coywolf-search-in {
+	from {
+		opacity: 0;
+		transform: translateY(-2px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes coywolf-search-out {
+	from {
+		opacity: 1;
+		transform: none;
+	}
+
+	to {
+		opacity: 0;
+		transform: translateY(-2px);
 	}
 }

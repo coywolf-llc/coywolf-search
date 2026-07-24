@@ -20,6 +20,12 @@
 	var MIN_WIDTH = 300;
 	var EDGE_GAP = 8;
 
+	// Kept in step with the fade in typeahead.css. The panel stays in the DOM
+	// until the fade finishes, so the close has something to animate; someone
+	// who asked for less motion gets the old instant behaviour.
+	var FADE_MS =
+		window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 0 : 140;
+
 	var LIBRARY = { promise: null, MiniSearch: null };
 	var CORPUS = { promise: null, index: null, byId: {} };
 	var counter = 0;
@@ -243,6 +249,7 @@
 		var requestToken = 0;
 		var announcedCount = -1;
 		var hintGiven = false;
+		var fadeTimer = null;
 
 		/* --- markup ---------------------------------------------------- */
 
@@ -364,14 +371,77 @@
 			activeId = active >= 0 ? items[ active ].id : null;
 		}
 
+		/**
+		 * Bring the panel up, fading in only if it was actually closed.
+		 *
+		 * Results arrive twice — instantly from the local index, then again
+		 * when the server's answer merges in — and replaying the entrance on
+		 * the second render would read as a flicker.
+		 */
+		function show() {
+			window.clearTimeout( fadeTimer );
+			list.classList.remove( 'is-closing' );
+
+			if ( ! list.hidden ) {
+				return;
+			}
+
+			list.hidden = false;
+			// Reading a layout value commits the un-hidden state, so the
+			// animation added next starts from it rather than being collapsed
+			// into the same frame.
+			void list.offsetHeight;
+			list.classList.add( 'is-open' );
+		}
+
+		/**
+		 * Fade the panel out, emptying it once it can no longer be seen.
+		 */
+		function hide() {
+			if ( list.hidden ) {
+				return;
+			}
+
+			window.clearTimeout( fadeTimer );
+			list.classList.remove( 'is-open' );
+			list.classList.add( 'is-closing' );
+
+			fadeTimer = window.setTimeout( function () {
+				list.hidden = true;
+				list.classList.remove( 'is-closing' );
+				list.innerHTML = '';
+			}, FADE_MS );
+		}
+
 		function render( query ) {
-			if ( ! items.length || ! visible() ) {
+			if ( ! visible() ) {
 				close();
-				// The visitor is mid-query with the field populated: silence
-				// here would leave the last spoken count standing as a lie.
-				if ( ! items.length && input.value.trim().length >= config.minChars ) {
-					announce( 0 );
+				return;
+			}
+
+			// Nothing matched, but the visitor typed something real: say so in
+			// the panel instead of vanishing, which reads as the feature having
+			// broken. The message is not an option — it cannot be arrowed to,
+			// clicked, or opened with Enter — and it is hidden from assistive
+			// software because the live region has already announced it.
+			if ( ! items.length ) {
+				if ( input.value.trim().length < config.minChars ) {
+					close();
+					return;
 				}
+
+				active = -1;
+				activeId = null;
+				position();
+				list.innerHTML =
+					'<div class="coywolf-search-empty" aria-hidden="true">' +
+					escapeHtml( config.strings.noResults ) +
+					'</div>';
+				show();
+				open = true;
+				input.setAttribute( 'aria-expanded', 'true' );
+				input.removeAttribute( 'aria-activedescendant' );
+				announce( 0 );
 				return;
 			}
 
@@ -409,7 +479,7 @@
 				} )
 				.join( '' );
 
-			list.hidden = false;
+			show();
 			open = true;
 			input.setAttribute( 'aria-expanded', 'true' );
 			announce( items.length );
@@ -466,8 +536,7 @@
 			active = -1;
 			activeId = null;
 			userMoved = false;
-			list.hidden = true;
-			list.innerHTML = '';
+			hide();
 			input.setAttribute( 'aria-expanded', 'false' );
 			input.removeAttribute( 'aria-activedescendant' );
 		}

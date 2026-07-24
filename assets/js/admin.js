@@ -12,6 +12,73 @@
 		return;
 	}
 
+	/**
+	 * Turn each colour field into a picker writing to its hidden input.
+	 *
+	 * The library takes over a bare span, which has no implicit role and no
+	 * keyboard behaviour of its own, so the toggle is given a button role, a
+	 * tab stop, its label, and Enter/Space activation to match every other
+	 * control on the screen.
+	 */
+	function initColourPickers() {
+		if ( 'undefined' === typeof ColorPicker ) {
+			return;
+		}
+
+		var fields = document.querySelectorAll( '.coywolf-search-colour-field' );
+
+		Array.prototype.forEach.call( fields, function ( field ) {
+			var hidden = field.querySelector( '.coywolf-search-colour-value' );
+			var mount = field.querySelector( '.coywolf-search-colour-mount' );
+			if ( ! hidden || ! mount ) {
+				return;
+			}
+
+			var picker = new ColorPicker( mount, {
+				color: hidden.value || null,
+				submitMode: 'instant',
+				enableAlpha: false,
+				formats: [ 'hex' ],
+				defaultFormat: 'hex',
+				showClearButton: true,
+			} );
+
+			var toggle = picker.element || mount;
+			var labelEl = field.querySelector( '.coywolf-search-colour-label' );
+
+			if ( toggle && labelEl && labelEl.id ) {
+				toggle.setAttribute( 'aria-labelledby', labelEl.id );
+				toggle.setAttribute( 'role', 'button' );
+				if ( ! toggle.hasAttribute( 'tabindex' ) ) {
+					toggle.setAttribute( 'tabindex', '0' );
+				}
+				toggle.addEventListener( 'keydown', function ( event ) {
+					if ( 'Enter' === event.key || ' ' === event.key || 'Spacebar' === event.key ) {
+						event.preventDefault();
+						toggle.click();
+					}
+				} );
+			}
+
+			picker.on( 'pick', function ( colour ) {
+				var hex = '';
+				if ( colour ) {
+					hex = colour.string( 'hex' );
+					if ( hex && '#' !== hex.charAt( 0 ) ) {
+						hex = '#' + hex;
+					}
+					if ( hex.length > 7 ) {
+						// Drop any alpha: the setting is a plain hex colour.
+						hex = hex.substring( 0, 7 );
+					}
+				}
+				hidden.value = hex;
+			} );
+		} );
+	}
+
+	initColourPickers();
+
 	var button = document.getElementById( 'coywolf-search-rebuild' );
 	var progress = document.getElementById( 'coywolf-search-progress' );
 

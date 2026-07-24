@@ -3,7 +3,7 @@ Contributors: jonhenshaw
 Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -109,6 +109,11 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 2. Ranking and matching controls, including BM25 tuning and per-field weights.
 
 == Changelog ==
+
+= 1.4.0 =
+* Suggestions that match nothing now say "No matching results." in the dropdown instead of the dropdown disappearing. The message cannot be selected or opened — Enter still runs a normal search.
+* The suggestion list fades in and out instead of flashing on and off. Visitors who ask their system for reduced motion still get the instant version.
+* New "Suggestion colours" settings: background, title, and snippet colours for the list, plus background, left border, title, and snippet for the highlighted suggestion. Leave any colour empty to inherit it from your theme.
 
 = 1.3.0 =
 * Security: the search endpoint's rate limiting now counts requests by the connecting address as well as the visitor address, so a spoofed forwarded header can no longer sidestep it, and buckets are salted so nobody can aim traffic at another visitor's bucket.
