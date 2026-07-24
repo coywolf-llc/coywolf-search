@@ -58,10 +58,25 @@ final class Coywolf_Search_Admin {
 			COYWOLF_SEARCH_VERSION
 		);
 
+		wp_enqueue_style(
+			'coywolf-search-colorpicker',
+			COYWOLF_SEARCH_URL . 'assets/vendor/jscolorpicker/colorpicker.min.css',
+			array(),
+			'1.1.0'
+		);
+
+		wp_enqueue_script(
+			'coywolf-search-colorpicker',
+			COYWOLF_SEARCH_URL . 'assets/vendor/jscolorpicker/colorpicker.iife.min.js',
+			array(),
+			'1.1.0',
+			true
+		);
+
 		wp_enqueue_script(
 			'coywolf-search-admin',
 			COYWOLF_SEARCH_URL . 'assets/js/admin.js',
-			array(),
+			array( 'coywolf-search-colorpicker' ),
 			COYWOLF_SEARCH_VERSION,
 			array(
 				'in_footer' => true,
@@ -175,6 +190,15 @@ final class Coywolf_Search_Admin {
 			$page
 		);
 		$this->add_field( 'typeahead', __( 'Instant suggestions', 'coywolf-search' ), 'field_typeahead', $page, 'coywolf_search_typeahead' );
+
+		add_settings_section(
+			'coywolf_search_appearance',
+			__( 'Suggestion colours', 'coywolf-search' ),
+			array( $this, 'section_appearance' ),
+			$page
+		);
+		$this->add_field( 'colours', __( 'Suggestion list', 'coywolf-search' ), 'field_colours', $page, 'coywolf_search_appearance' );
+		$this->add_field( 'colours_active', __( 'Highlighted suggestion', 'coywolf-search' ), 'field_colours_active', $page, 'coywolf_search_appearance' );
 	}
 
 	/**
@@ -222,6 +246,13 @@ final class Coywolf_Search_Admin {
 	 */
 	public function section_typeahead() {
 		echo '<p>' . esc_html__( 'Suggestions shown as a visitor types in a search box.', 'coywolf-search' ) . '</p>';
+	}
+
+	/**
+	 * Appearance section description.
+	 */
+	public function section_appearance() {
+		echo '<p>' . esc_html__( 'Leave a colour empty to inherit it from your theme, which also keeps the suggestions readable in dark mode. Set one to override just that colour.', 'coywolf-search' ) . '</p>';
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -432,6 +463,52 @@ final class Coywolf_Search_Admin {
 	 */
 	private function close_group() {
 		echo '</fieldset>';
+	}
+
+	/**
+	 * Resting colours for the suggestion list.
+	 */
+	public function field_colours() {
+		$this->open_group( __( 'Suggestion list colours', 'coywolf-search' ) );
+		$this->colour( 'colour_bg', __( 'Background', 'coywolf-search' ) );
+		$this->colour( 'colour_title', __( 'Title', 'coywolf-search' ) );
+		$this->colour( 'colour_snippet', __( 'Snippet', 'coywolf-search' ) );
+		$this->close_group();
+	}
+
+	/**
+	 * Colours for the suggestion Enter would open.
+	 */
+	public function field_colours_active() {
+		$this->open_group( __( 'Highlighted suggestion colours', 'coywolf-search' ), 'coywolf-search-active-colours-desc' );
+		$this->colour( 'colour_active_bg', __( 'Background', 'coywolf-search' ) );
+		$this->colour( 'colour_active_border', __( 'Left border', 'coywolf-search' ) );
+		$this->colour( 'colour_active_title', __( 'Title', 'coywolf-search' ) );
+		$this->colour( 'colour_active_snippet', __( 'Snippet', 'coywolf-search' ) );
+		$this->close_group();
+		echo '<p class="description" id="coywolf-search-active-colours-desc">' . esc_html__( 'Used for the suggestion the arrow keys are on — the one Enter opens. Keep it distinct from the background so it is obvious which suggestion is selected.', 'coywolf-search' ) . '</p>';
+	}
+
+	/**
+	 * Render a colour picker bound to a hidden value input.
+	 *
+	 * The picker writes into the hidden input, so the form still submits an
+	 * ordinary field and an empty value still means "inherit from the theme".
+	 *
+	 * @param string $key   Setting key.
+	 * @param string $label Label text.
+	 */
+	private function colour( $key, $label ) {
+		$label_id = 'coywolf-search-colourlabel-' . $key;
+
+		printf(
+			'<span class="coywolf-search-colour-field" data-key="%3$s" role="group" aria-labelledby="%5$s"><span class="coywolf-search-colour-label" id="%5$s">%1$s</span><input type="hidden" class="coywolf-search-colour-value" name="%2$s[%3$s]" value="%4$s" /><span class="coywolf-search-colour-mount"></span></span>',
+			esc_html( $label ),
+			esc_attr( Coywolf_Search_Settings::OPTION ),
+			esc_attr( $key ),
+			esc_attr( (string) Coywolf_Search_Settings::get( $key ) ),
+			esc_attr( $label_id )
+		);
 	}
 
 	/**

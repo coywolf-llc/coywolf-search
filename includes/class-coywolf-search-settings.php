@@ -67,6 +67,35 @@ final class Coywolf_Search_Settings {
 			'typeahead_debounce' => 200,
 			'typeahead_enter'    => true,
 			'typeahead_show_type' => false,
+
+			// Appearance. Every colour defaults to empty, which means "leave it
+			// to the theme": the dropdown inherits the page's own colours and
+			// keeps working in dark mode and forced-colours mode. A value here
+			// overrides that one colour and nothing else.
+			'colour_bg'             => '',
+			'colour_title'          => '',
+			'colour_snippet'        => '',
+			'colour_active_bg'      => '',
+			'colour_active_border'  => '',
+			'colour_active_title'   => '',
+			'colour_active_snippet' => '',
+		);
+	}
+
+	/**
+	 * The colour settings, mapped to the custom properties the stylesheet reads.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function colour_map() {
+		return array(
+			'colour_bg'             => '--coywolf-search-bg',
+			'colour_title'          => '--coywolf-search-title',
+			'colour_snippet'        => '--coywolf-search-snippet',
+			'colour_active_bg'      => '--coywolf-search-active-bg',
+			'colour_active_border'  => '--coywolf-search-active-border',
+			'colour_active_title'   => '--coywolf-search-active-title',
+			'colour_active_snippet' => '--coywolf-search-active-snippet',
 		);
 	}
 
@@ -190,6 +219,14 @@ final class Coywolf_Search_Settings {
 		$out['typeahead_debounce'] = self::clamp_int( $input, 'typeahead_debounce', 0, 2000, $defaults['typeahead_debounce'] );
 		$out['typeahead_enter']     = ! empty( $input['typeahead_enter'] );
 		$out['typeahead_show_type'] = ! empty( $input['typeahead_show_type'] );
+
+		// sanitize_hex_color() returns null for anything that is not a valid
+		// #rgb/#rrggbb colour, which is exactly the "unset" value here — so an
+		// empty field and a malformed one both fall back to the theme.
+		foreach ( array_keys( self::colour_map() ) as $key ) {
+			$raw          = isset( $input[ $key ] ) ? sanitize_text_field( $input[ $key ] ) : '';
+			$out[ $key ] = (string) sanitize_hex_color( $raw );
+		}
 
 		self::$cache = $out;
 

@@ -109,12 +109,46 @@ final class Coywolf_Search_Assets {
 			'strings'       => array(
 				'clear'      => __( 'Clear search', 'coywolf-search' ),
 				'listLabel'  => __( 'Search suggestions', 'coywolf-search' ),
-				'noResults'  => __( 'No matching suggestions.', 'coywolf-search' ),
+				'noResults'  => __( 'No matching results.', 'coywolf-search' ),
 				/* translators: %d: number of suggestions available. */
 				'available'  => __( '%d suggestions available.', 'coywolf-search' ),
 				'hint'       => __( 'Use the arrow keys to review suggestions and Enter to open one. Escape closes the list.', 'coywolf-search' ),
 			),
 		);
+	}
+
+	/**
+	 * The configured colours, as a custom-property declaration.
+	 *
+	 * Only colours that were actually set are emitted, so a site that has
+	 * changed nothing ships no extra bytes and the stylesheet's own
+	 * theme-following fallbacks stay in charge. Values come out of
+	 * sanitize_hex_color(), so they are `#rgb`/`#rrggbb` or nothing at all.
+	 *
+	 * @return string CSS, or an empty string when nothing is configured.
+	 */
+	private function colour_css() {
+		$declarations = array();
+
+		foreach ( Coywolf_Search_Settings::colour_map() as $key => $property ) {
+			$value = (string) Coywolf_Search_Settings::get( $key );
+			if ( '' === $value ) {
+				continue;
+			}
+			$declarations[] = $property . ':' . $value;
+
+			// A chosen snippet colour is shown at full strength; the default
+			// dimming only exists to soften inherited body text.
+			if ( 'colour_snippet' === $key ) {
+				$declarations[] = '--coywolf-search-snippet-opacity:1';
+			}
+		}
+
+		if ( empty( $declarations ) ) {
+			return '';
+		}
+
+		return '.coywolf-search-suggestions{' . implode( ';', $declarations ) . '}';
 	}
 
 	/**
@@ -165,6 +199,12 @@ final class Coywolf_Search_Assets {
 		}
 
 		wp_enqueue_style( self::HANDLE_STYLE );
+
+		$colours = $this->colour_css();
+		if ( '' !== $colours ) {
+			wp_add_inline_style( self::HANDLE_STYLE, $colours );
+		}
+
 		wp_enqueue_script( self::HANDLE_SCRIPT );
 
 		wp_add_inline_script(
