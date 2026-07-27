@@ -3,7 +3,7 @@ Contributors: jonhenshaw
 Tags: search, relevance, bm25, typeahead, autocomplete
 Requires at least: 6.3
 Tested up to: 7.0
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -109,6 +109,9 @@ Yes — both the automatic rebuilds and the background reindexing of edits rely 
 2. The Search settings screen. Tune field weights, BM25 parameters, fuzzy and prefix matching, tokenization (minimum token length, stopwords, stemming), and typeahead behavior.
 
 == Changelog ==
+
+= 1.4.2 =
+* The search rate limiter now spells out its transient names with the full plugin prefix at each call, so automated reviews can see the prefix. No change to behaviour.
 
 = 1.4.1 =
 * Updated the plugin's home page link and refreshed the screenshots.

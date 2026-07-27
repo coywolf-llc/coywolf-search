@@ -394,32 +394,29 @@ final class Coywolf_Search_REST_Controller {
 			return true;
 		}
 
-		$layers = array(
-			array( 'coywolf_search_rl_', $this->client_ip(), $limit ),
-			array( 'coywolf_search_rlt_', $this->remote_addr(), $limit * self::TRANSPORT_MULTIPLIER ),
-		);
+		// The bucket the address hashes into is a suffix; the transient names
+		// themselves are spelled out with the literal 'coywolf_search_' prefix
+		// at every get and set below. That is deliberate — a name built into a
+		// variable and passed in reads as unprefixed to a static scanner, even
+		// when it is correctly prefixed at run time.
+		$visitor_bucket   = substr( wp_hash( $this->client_ip() ), 0, self::BUCKET_CHARS );
+		$transport_bucket = substr( wp_hash( $this->remote_addr() ), 0, self::BUCKET_CHARS );
 
-		$keys = array();
-		foreach ( $layers as $layer ) {
-			$key   = $layer[0] . substr( wp_hash( $layer[1] ), 0, self::BUCKET_CHARS );
-			$count = (int) get_transient( $key );
+		$visitor   = (int) get_transient( 'coywolf_search_rl_' . $visitor_bucket );
+		$transport = (int) get_transient( 'coywolf_search_rlt_' . $transport_bucket );
 
-			if ( $count >= $layer[2] ) {
-				return new WP_Error(
-					'coywolf_search_rate_limited',
-					__( 'Too many searches. Please wait a moment and try again.', 'coywolf-search' ),
-					array( 'status' => 429 )
-				);
-			}
-
-			$keys[ $key ] = $count;
+		if ( $visitor >= $limit || $transport >= $limit * self::TRANSPORT_MULTIPLIER ) {
+			return new WP_Error(
+				'coywolf_search_rate_limited',
+				__( 'Too many searches. Please wait a moment and try again.', 'coywolf-search' ),
+				array( 'status' => 429 )
+			);
 		}
 
 		// Recorded only after both layers pass, so a refused request costs the
 		// caller nothing and cannot be used to inflate someone else's bucket.
-		foreach ( $keys as $key => $count ) {
-			set_transient( $key, $count + 1, self::RATE_WINDOW );
-		}
+		set_transient( 'coywolf_search_rl_' . $visitor_bucket, $visitor + 1, self::RATE_WINDOW );
+		set_transient( 'coywolf_search_rlt_' . $transport_bucket, $transport + 1, self::RATE_WINDOW );
 
 		return true;
 	}
