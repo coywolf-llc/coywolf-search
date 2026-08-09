@@ -101,10 +101,19 @@ input[data-coywolf-search-bound]::-ms-clear {
 }
 
 /* The first suggestion selects itself as results appear, so this has to read
-   clearly as "Enter opens this" rather than as a faint hover tint. */
+   clearly as "Enter opens this" rather than as a faint hover tint. The default
+   is a solid #f1f1f1 for light mode; dark mode keeps a translucent tint below,
+   since a near-white bar would be wrong on a dark panel. A configured colour
+   (the custom property) overrides both. */
 .coywolf-search-option.is-active {
-	background: var(--coywolf-search-active-bg, rgba(127, 127, 127, 0.2));
+	background: var(--coywolf-search-active-bg, #f1f1f1);
 	box-shadow: inset 3px 0 0 0 var(--coywolf-search-active-border, currentColor);
+}
+
+@media (prefers-color-scheme: dark) {
+	.coywolf-search-option.is-active {
+		background: var(--coywolf-search-active-bg, rgba(127, 127, 127, 0.2));
+	}
 }
 
 .coywolf-search-option.is-active .coywolf-search-title {
