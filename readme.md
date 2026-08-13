@@ -1,6 +1,6 @@
 # Coywolf Search
 
-**Version:** 1.4.3
+**Version:** 1.4.4
 
 Replaces WordPress search with a custom full-text index: BM25 ranking, fuzzy and prefix matching, and per-post-type control.
 
@@ -74,6 +74,9 @@ Deploying to the WordPress.org SVN repository is deliberately manual: run the **
 <!-- wporg-strip:end -->
 
 ## Changelog
+
+### 1.4.4
+- Confirm WordPress 7.1 compatibility (Tested up to: 7.1) (#10).
 
 ### 1.4.3
 - Default highlighted-suggestion background is now #f1f1f1 in light mode (was a translucent grey tint). Dark mode keeps the translucent default; an explicit `colour_active_bg` setting overrides both.
